@@ -27,6 +27,7 @@ export const lightColors = {
   chartOrange: '#B87A50',
   chartSlate:  '#7A8B68',
   div: '#797D81', 
+  white: '#FFFFFF',
 };
 
 // ── DARK THEME — Designer Modern (#222629 based) ─────────────────────────────
@@ -57,6 +58,7 @@ export const darkColors = {
   chartOrange: '#C4906A',
   chartSlate:  '#8A9AAA',
   div: '#797D81',
+  white: '#FFFFFF',
 };
 
 export const spacing = {

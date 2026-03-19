@@ -1,10 +1,10 @@
 // src/screens/SettingsScreen.js
-// Finova v2.7 — currency in Edit Profile, removed from Preferences
+// Finova v2.7 — currency in Edit Profile, custom modals, creator credit
 
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, Alert, Switch, Image, ImageBackground, Dimensions,
+  StyleSheet, Switch, Image, ImageBackground, Dimensions, Modal, Platform, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,6 +24,8 @@ const CURRENCIES = [
   { sym: '€', label: 'EUR' },
   { sym: '£', label: 'GBP' },
 ];
+
+// ─── SVG Icons ───────────────────────────────────────────────────────────────
 
 function EditIcon({ color, size = 18 }) {
   return (
@@ -45,24 +47,105 @@ function CameraIcon({ color }) {
   );
 }
 
+// ─── Log Out Modal ────────────────────────────────────────────────────────────
+
+function LogoutModal({ visible, onCancel, onLogoutOnly, onDownloadLogout }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onCancel}>
+      <View style={cm.backdrop}>
+        <View style={cm.sheet}>
+          <View style={cm.handle} />
+
+          {/* Icon */}
+          <View style={cm.iconRing}>
+            <Text style={cm.iconEmoji}>🚪</Text>
+          </View>
+
+          <Text style={cm.title}>Log Out</Text>
+          <Text style={cm.body}>
+            Your data lives only on this device. Before logging out, we strongly recommend downloading a backup so you can restore your account later.
+          </Text>
+
+          {/* Download & Log Out — primary */}
+          <TouchableOpacity style={cm.primaryBtn} onPress={onDownloadLogout} activeOpacity={0.84}>
+            <Text style={cm.primaryBtnText}>📥  Download & Log Out</Text>
+          </TouchableOpacity>
+
+          {/* Log Out Without Saving — destructive */}
+          <TouchableOpacity style={cm.destructiveBtn} onPress={onLogoutOnly} activeOpacity={0.84}>
+            <Text style={cm.destructiveBtnText}>Log Out Without Saving</Text>
+          </TouchableOpacity>
+
+          {/* Cancel */}
+          <TouchableOpacity style={cm.ghostBtn} onPress={onCancel} activeOpacity={0.75}>
+            <Text style={cm.ghostBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Clear All Data Modal ─────────────────────────────────────────────────────
+
+function ClearDataModal({ visible, onCancel, onConfirm }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onCancel}>
+      <View style={cm.backdrop}>
+        <View style={cm.sheet}>
+          <View style={cm.handle} />
+
+          {/* Icon */}
+          <View style={[cm.iconRing, cm.iconRingDanger]}>
+            <Text style={cm.iconEmoji}>🗑️</Text>
+          </View>
+
+          <Text style={cm.title}>Clear All Data</Text>
+          <Text style={cm.body}>
+            This will permanently erase every transaction you have recorded. Your profile and preferences will be kept, but this action{' '}
+            <Text style={cm.bodyBold}>cannot be undone</Text>.
+          </Text>
+
+          {/* Warning pill */}
+          <View style={cm.warningPill}>
+            <Text style={cm.warningText}>⚠️  We recommend downloading a backup first.</Text>
+          </View>
+
+          {/* Clear — destructive */}
+          <TouchableOpacity style={cm.destructiveBtn} onPress={onConfirm} activeOpacity={0.84}>
+            <Text style={cm.destructiveBtnText}>Yes, Clear Everything</Text>
+          </TouchableOpacity>
+
+          {/* Cancel */}
+          <TouchableOpacity style={cm.ghostBtn} onPress={onCancel} activeOpacity={0.75}>
+            <Text style={cm.ghostBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
 export default function SettingsScreen({ navigation }) {
   const {
     transactions, settings, customCategories,
     updateSettings, toggleDarkMode, importData, dispatch,
   } = useApp();
 
-  const [showDataManager, setShowDataManager] = useState(false);
-  const [editMode,        setEditMode        ] = useState(false);
-  const [editName,        setEditName        ] = useState('');
-  const [editAge,         setEditAge         ] = useState('');
-  const [editImage,       setEditImage       ] = useState('');
-  const [editCurrency,    setEditCurrency    ] = useState('');   // NEW — currency in edit form
+  const [showDataManager,  setShowDataManager ] = useState(false);
+  const [editMode,         setEditMode        ] = useState(false);
+  const [editName,         setEditName        ] = useState('');
+  const [editAge,          setEditAge         ] = useState('');
+  const [editImage,        setEditImage       ] = useState('');
+  const [editCurrency,     setEditCurrency    ] = useState('');
+  const [logoutModalOpen,  setLogoutModalOpen ] = useState(false);
+  const [clearModalOpen,   setClearModalOpen  ] = useState(false);
 
-  const colors = settings.darkMode ? darkColors : lightColors;
-  const overlayColor = settings.darkMode
-    ? 'rgba(0,0,0,0.82)'
-    : 'rgba(44,51,32,0.55)';
-  const s = makeStyles(colors);
+  const colors       = settings.darkMode ? darkColors : lightColors;
+  const overlayColor = settings.darkMode ? 'rgba(0,0,0,0.82)' : 'rgba(44,51,32,0.55)';
+  const s            = makeStyles(colors);
 
   const openEdit = () => {
     setEditName(settings.name  || '');
@@ -71,17 +154,10 @@ export default function SettingsScreen({ navigation }) {
     setEditCurrency(settings.currency  || '₹');
     setEditMode(true);
   };
-
   const saveEdit = () => {
-    updateSettings({
-      name:         editName.trim(),
-      age:          editAge.trim(),
-      profileImage: editImage,
-      currency:     editCurrency,
-    });
+    updateSettings({ name: editName.trim(), age: editAge.trim(), profileImage: editImage, currency: editCurrency });
     setEditMode(false);
   };
-
   const cancelEdit = () => setEditMode(false);
 
   const pickProfileImage = async () => {
@@ -99,7 +175,7 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
-  // ─── Data handlers ───────────────────────────────────────────────────────────
+  // ─── Data handlers ──────────────────────────────────────────────────────────
 
   const handleDownload = async () => {
     try {
@@ -131,23 +207,22 @@ export default function SettingsScreen({ navigation }) {
     }
   };
 
-  const handleReset = () => {
-    Alert.alert('Clear All Data', 'This will permanently erase all your transactions. This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear Everything', style: 'destructive',
-        onPress: async () => {
-          await AsyncStorage.clear();
-          dispatch({ type: 'LOAD_DATA', payload: {
-            transactions: [],
-            settings: { name: settings.name, age: settings.age, currency: settings.currency, darkMode: settings.darkMode, profileImage: settings.profileImage || '' },
-          }});
-        },
+  // Clear — triggered by custom modal confirm
+  const executeClear = async () => {
+    setClearModalOpen(false);
+    await AsyncStorage.clear();
+    dispatch({ type: 'LOAD_DATA', payload: {
+      transactions: [],
+      settings: {
+        name: settings.name, age: settings.age, currency: settings.currency,
+        darkMode: settings.darkMode, profileImage: settings.profileImage || '',
       },
-    ]);
+    }});
   };
 
+  // Logout helpers
   const performLogout = async () => {
+    setLogoutModalOpen(false);
     await AsyncStorage.clear();
     dispatch({ type: 'LOAD_DATA', payload: {
       transactions:     [],
@@ -157,28 +232,16 @@ export default function SettingsScreen({ navigation }) {
     navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      'Log Out',
-      'Do you want to download your data before logging out?\nYour data will be cleared from this device.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Download & Log Out',
-          onPress: async () => {
-            try {
-              const data    = JSON.stringify({ transactions, settings, customCategories }, null, 2);
-              const fileUri = FileSystem.cacheDirectory + 'finova_backup.json';
-              await FileSystem.writeAsStringAsync(fileUri, data);
-              const isAvailable = await Sharing.isAvailableAsync();
-              if (isAvailable) await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Save your Finova backup before logging out', UTI: 'public.json' });
-            } catch (err) { console.error('[Logout] Download failed:', err); }
-            await performLogout();
-          },
-        },
-        { text: 'Log Out Without Saving', style: 'destructive', onPress: performLogout },
-      ]
-    );
+  const handleDownloadThenLogout = async () => {
+    setLogoutModalOpen(false);
+    try {
+      const data    = JSON.stringify({ transactions, settings, customCategories }, null, 2);
+      const fileUri = FileSystem.cacheDirectory + 'finova_backup.json';
+      await FileSystem.writeAsStringAsync(fileUri, data);
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) await Sharing.shareAsync(fileUri, { mimeType: 'application/json', dialogTitle: 'Save your Finova backup before logging out', UTI: 'public.json' });
+    } catch (err) { console.error('[Logout] Download failed:', err); }
+    await performLogout();
   };
 
   const displayName  = settings.name || 'Your Name';
@@ -188,11 +251,7 @@ export default function SettingsScreen({ navigation }) {
 
   return (
     <View style={s.root}>
-      <ImageBackground
-        source={require('../../assets/splash-icon.png')}
-        style={s.bg}
-        resizeMode="cover"
-      >
+      <ImageBackground source={require('../../assets/splash-icon.png')} style={s.bg} resizeMode="cover">
         <View style={[s.overlay, { backgroundColor: overlayColor }]} />
 
         <SafeAreaView style={s.safe}>
@@ -240,31 +299,20 @@ export default function SettingsScreen({ navigation }) {
                   </TouchableOpacity>
                   <Text style={s.editAvatarHint}>Tap photo to change</Text>
 
-                  {/* Name */}
                   <Text style={s.editLabel}>NAME</Text>
                   <TextInput
-                    style={s.editInput}
-                    value={editName}
-                    onChangeText={setEditName}
-                    placeholder="Your name"
-                    placeholderTextColor={colors.textMuted}
-                    autoCapitalize="words"
-                    maxLength={24}
+                    style={s.editInput} value={editName} onChangeText={setEditName}
+                    placeholder="Your name" placeholderTextColor={colors.textMuted}
+                    autoCapitalize="words" maxLength={24}
                   />
 
-                  {/* Age */}
                   <Text style={s.editLabel}>AGE</Text>
                   <TextInput
-                    style={s.editInput}
-                    value={editAge}
-                    onChangeText={v => setEditAge(v.replace(/[^0-9]/g, ''))}
-                    placeholder="Your age"
-                    placeholderTextColor={colors.textMuted}
-                    keyboardType="number-pad"
-                    maxLength={3}
+                    style={s.editInput} value={editAge} onChangeText={v => setEditAge(v.replace(/[^0-9]/g, ''))}
+                    placeholder="Your age" placeholderTextColor={colors.textMuted}
+                    keyboardType="number-pad" maxLength={3}
                   />
 
-                  {/* ── Currency — moved here from Preferences ── */}
                   <Text style={s.editLabel}>CURRENCY</Text>
                   <View style={s.currencyChipsRow}>
                     {CURRENCIES.map(c => (
@@ -281,7 +329,6 @@ export default function SettingsScreen({ navigation }) {
                     ))}
                   </View>
 
-                  {/* Actions */}
                   <View style={s.editActions}>
                     <TouchableOpacity style={s.cancelBtn} onPress={cancelEdit} activeOpacity={0.8}>
                       <Text style={s.cancelBtnText}>Cancel</Text>
@@ -294,7 +341,7 @@ export default function SettingsScreen({ navigation }) {
               )}
             </View>
 
-            {/* ── Preferences — Dark Mode only (currency moved to Edit Profile) ── */}
+            {/* ── Preferences ── */}
             <Text style={s.sectionLabel}>PREFERENCES</Text>
             <View style={s.card}>
               <View style={[s.row, { borderBottomWidth: 0 }]}>
@@ -327,7 +374,8 @@ export default function SettingsScreen({ navigation }) {
                   <View style={[s.iconBox, { backgroundColor: colors.surface2 }]}><Text>📤</Text></View>
                   <View style={s.rowInfo}><Text style={s.rowLabel}>Upload Data</Text><Text style={s.rowHint}>Restore data from a JSON backup</Text></View>
                 </TouchableOpacity>
-                <TouchableOpacity style={[s.row, { borderBottomWidth: 0 }]} onPress={handleReset}>
+                {/* Clear All — opens custom modal */}
+                <TouchableOpacity style={[s.row, { borderBottomWidth: 0 }]} onPress={() => setClearModalOpen(true)}>
                   <View style={[s.iconBox, { backgroundColor: colors.wineRed + '33' }]}><Text>🗑️</Text></View>
                   <View style={s.rowInfo}><Text style={[s.rowLabel, { color: colors.wineRed }]}>Clear All Data</Text><Text style={s.rowHint}>Erase all transactions permanently</Text></View>
                 </TouchableOpacity>
@@ -349,34 +397,56 @@ export default function SettingsScreen({ navigation }) {
               </TouchableOpacity>
             </View>
 
-            {/* ── Log Out ── */}
-            <TouchableOpacity style={s.logoutBtn} onPress={handleLogout} activeOpacity={0.8}>
+            {/* ── Log Out — opens custom modal ── */}
+            <TouchableOpacity style={s.logoutBtn} onPress={() => setLogoutModalOpen(true)} activeOpacity={0.8}>
               <Text style={s.logoutText}>Log Out</Text>
             </TouchableOpacity>
+
+            {/* ── Creator Credit ── */}
+            <View style={s.creditBlock}>
+              <View style={s.creditDivider} />
+              <Text style={s.creditMadeBy}>crafted with by</Text>
+              <Text style={s.creditName}>Abhiram Kasturi</Text>
+              <Text style={s.creditFinova}>Finova · 2026</Text>
+            </View>
 
           </ScrollView>
         </SafeAreaView>
       </ImageBackground>
+
+      {/* ── Custom Modals (rendered outside scroll so they cover the full screen) ── */}
+      <LogoutModal
+        visible={logoutModalOpen}
+        onCancel={() => setLogoutModalOpen(false)}
+        onLogoutOnly={performLogout}
+        onDownloadLogout={handleDownloadThenLogout}
+      />
+      <ClearDataModal
+        visible={clearModalOpen}
+        onCancel={() => setClearModalOpen(false)}
+        onConfirm={executeClear}
+      />
     </View>
   );
 }
+
+// ─── Screen Styles ────────────────────────────────────────────────────────────
 
 const makeStyles = (colors) => StyleSheet.create({
   root:    { flex: 1 },
   bg:      { width, height: '100%', flex: 1 },
   overlay: { ...StyleSheet.absoluteFillObject },
   safe:    { flex: 1 },
-  content: { padding: spacing.lg, paddingTop: spacing.xl + 10, paddingBottom: 100 },
+  content: { padding: spacing.lg, paddingTop: spacing.xl + 10, paddingBottom: 40 },
 
-  title:    { fontSize: 26, color: '#FFFFFF', fontFamily: fonts.heavy },
-  subtitle: { fontSize: 13, color: 'rgba(255,255,255,0.65)', marginBottom: spacing.lg, fontFamily: fonts.regular },
+  title:    { fontSize: 26, color: colors.white, fontFamily: fonts.heavy },
+  subtitle: { fontSize: 13, color: colors.white, marginBottom: spacing.lg, fontFamily: fonts.regular },
 
-  // Profile card
   profileCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.accent },
   profileRow:  { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatarWrap:  { flexShrink: 0 },
-  avatarImg:   { width: 60, height: 60, borderRadius: 30 },
-  avatar:      { width: 60, height: 60, borderRadius: 30, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  avatarImg:   { width: 80, height: 80, borderRadius: 40 },
+  avatar:      { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
   avatarText:  { fontSize: 24, color: colors.activePill, fontFamily: fonts.bold },
   profileInfo: { flex: 1 },
   profileName: { fontSize: 18, color: colors.textPrimary, fontFamily: fonts.heavy },
@@ -395,11 +465,10 @@ const makeStyles = (colors) => StyleSheet.create({
   editLabel:             { fontFamily: fonts.bold, fontSize: 10, color: colors.textMuted, letterSpacing: 1.5, marginBottom: 6 },
   editInput:             { backgroundColor: colors.surface2, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 11, fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, marginBottom: 16 },
 
-  // Currency chips inside Edit Profile
-  currencyChipsRow:    { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  currencyChip:        { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2 },
-  currencyChipActive:  { backgroundColor: colors.accent, borderColor: colors.accent },
-  currencyChipText:    { fontFamily: fonts.bold, fontSize: 13, color: colors.accentLight },
+  currencyChipsRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  currencyChip:           { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2 },
+  currencyChipActive:     { backgroundColor: colors.accent, borderColor: colors.accent },
+  currencyChipText:       { fontFamily: fonts.bold, fontSize: 13, color: colors.accentLight },
   currencyChipTextActive: { color: colors.activePill },
 
   editActions:   { flexDirection: 'row', gap: 10, marginTop: 4 },
@@ -408,18 +477,151 @@ const makeStyles = (colors) => StyleSheet.create({
   saveBtn:       { flex: 1, paddingVertical: 12, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: 'center' },
   saveBtnText:   { fontFamily: fonts.bold, fontSize: 13, color: colors.activePill },
 
-  sectionLabel:  { fontSize: 11, color: 'rgba(255,255,255,0.65)', letterSpacing: 1, paddingBottom: 10, fontFamily: fonts.bold },
+  sectionLabel:  { fontSize: 11, color: colors.white, letterSpacing: 1, paddingBottom: 10, fontFamily: fonts.bold },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: spacing.sm },
   chevron:       { fontSize: 10, color: colors.textMuted },
 
-  card:    { backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.lg, overflow: 'hidden' },
-  row:     { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 },
-  iconBox: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  rowInfo: { flex: 1 },
-  rowLabel:{ fontSize: 13, color: colors.textPrimary, fontFamily: fonts.bold },
-  rowHint: { fontSize: 11, color: colors.textMuted, marginTop: 2, fontFamily: fonts.regular },
-  rowMuted:{ fontSize: 13, color: colors.textMuted, fontFamily: fonts.regular },
+  card:     { backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.lg, overflow: 'hidden' },
+  row:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 },
+  iconBox:  { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  rowInfo:  { flex: 1 },
+  rowLabel: { fontSize: 13, color: colors.textPrimary, fontFamily: fonts.bold },
+  rowHint:  { fontSize: 11, color: colors.textMuted, marginTop: 2, fontFamily: fonts.regular },
+  rowMuted: { fontSize: 13, color: colors.textMuted, fontFamily: fonts.regular },
 
-  logoutBtn:  { marginTop: 4, marginBottom: 16, borderWidth: 0, borderRadius: radius.lg, paddingVertical: 15, alignItems: 'center', backgroundColor: colors.wineRed },
+  logoutBtn:  { marginTop: 4, marginBottom: 28, borderRadius: radius.lg, paddingVertical: 15, alignItems: 'center', backgroundColor: colors.wineRed },
   logoutText: { fontFamily: fonts.bold, fontSize: 15, color: '#FFFFFF', letterSpacing: 0.4 },
+
+  // ── Creator credit ──
+  creditBlock: { alignItems: 'center', paddingBottom: 16 },
+  creditDivider: { width: 36, height: 2, borderRadius: 1, backgroundColor: 'rgba(174,183,132,0.30)', marginBottom: 16 },
+  creditMadeBy: { fontFamily: fonts.regular, fontSize: 11, color:colors.white, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  creditName:   { fontFamily: fonts.heavy, fontSize: 18, color: '#AEB784', letterSpacing: 0.3, marginBottom: 4 },
+  creditFinova: { fontFamily: fonts.regular, fontSize: 11, color: colors.white, letterSpacing: 0.5 , paddingBottom: 50},
+});
+
+// ─── Custom Modal Styles ──────────────────────────────────────────────────────
+
+const cm = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#2C3020',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 28,
+    borderWidth: 1,
+    borderColor: 'rgba(174,183,132,0.18)',
+    borderBottomWidth: 0,
+  },
+
+  handle: {
+    width: 38, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(174,183,132,0.35)',
+    alignSelf: 'center',
+    marginTop: 12, marginBottom: 24,
+  },
+
+  // Emoji icon ring
+  iconRing: {
+    alignSelf: 'center',
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: 'rgba(174,183,132,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(174,183,132,0.30)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 18,
+  },
+  iconRingDanger: {
+    backgroundColor: 'rgba(158,90,90,0.15)',
+    borderColor: 'rgba(158,90,90,0.35)',
+  },
+  iconEmoji: { fontSize: 28 },
+
+  title: {
+    fontFamily: 'Fungis-Heavy',
+    fontSize: 22,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  body: {
+    fontFamily: 'Fungis-Regular',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.55)',
+    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 24,
+  },
+  bodyBold: {
+    fontFamily: 'Fungis-Bold',
+    color: 'rgba(255,255,255,0.80)',
+  },
+
+  // Warning pill (Clear modal)
+  warningPill: {
+    backgroundColor: 'rgba(158,90,90,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(158,90,90,0.30)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  warningText: {
+    fontFamily: 'Fungis-Regular',
+    fontSize: 12,
+    color: 'rgba(255,180,180,0.80)',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  // Primary (green) button — Download & Log Out
+  primaryBtn: {
+    backgroundColor: '#AEB784',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  primaryBtnText: {
+    fontFamily: 'Fungis-Bold',
+    fontSize: 15,
+    color: '#222629',
+    letterSpacing: 0.4,
+  },
+
+  // Destructive (wine red outline) button
+  destructiveBtn: {
+    backgroundColor: 'rgba(158,90,90,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(158,90,90,0.45)',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  destructiveBtnText: {
+    fontFamily: 'Fungis-Bold',
+    fontSize: 15,
+    color: '#D4918F',
+    letterSpacing: 0.3,
+  },
+
+  // Ghost cancel button
+  ghostBtn: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  ghostBtnText: {
+    fontFamily: 'Fungis-Regular',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.40)',
+  },
 });

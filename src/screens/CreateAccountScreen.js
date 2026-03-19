@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, ImageBackground, TouchableOpacity,
   TextInput, ScrollView, Dimensions, StatusBar,
-  KeyboardAvoidingView, Platform, Image, Alert,
+  KeyboardAvoidingView, Platform, Image, Alert, Modal,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import Svg, { Path } from 'react-native-svg';
@@ -24,6 +24,58 @@ const THEMES = [
   { label: '🌙  Dark',  value: 'dark'  },
 ];
 
+// ── Terms content ────────────────────────────────────────────────────────────
+const TERMS_SECTIONS = [
+  {
+    heading: 'Terms of Service',
+    body: [
+      'By creating a Finova account, you agree to use the app for personal, non-commercial financial tracking only.',
+      'Finova is provided "as-is" without warranties of any kind. We reserve the right to update these terms at any time.',
+      'Misuse of the app, including attempts to exploit, reverse-engineer, or redistribute it, is strictly prohibited.',
+    ],
+  },
+  {
+    heading: 'Data Storage & Responsibility',
+    body: [
+      'All your financial data — transactions, categories, and profile information — is stored entirely on your own device. Finova does not operate any servers, databases, or cloud services.',
+      'We are not responsible for any loss of data caused by device failure, accidental deletion, app uninstallation, OS updates, factory resets, or any other circumstance.',
+      'It is your sole responsibility to back up your data regularly using the Export / Download feature in Settings. We strongly recommend doing this before switching devices or reinstalling the app.',
+    ],
+  },
+  {
+    heading: 'Personal Information',
+    body: [
+      'Any personal information you enter — including your name, age, and profile picture — is stored locally on your device only and is never transmitted to Finova or any third party.',
+      'You provide this information voluntarily and entirely at your own risk. Finova has no access to, and assumes no liability for, the personal information you choose to enter.',
+      'If you share your device or your exported backup file with others, your personal information may be visible to them. Exercise caution accordingly.',
+    ],
+  },
+  {
+    heading: 'Privacy Policy',
+    body: [
+      'Finova does not collect, transmit, or sell any user data. There is no analytics tracking, no advertising SDK, and no network calls made by the app.',
+      'Your exported JSON backup file contains all app data in plain text. Keep it secure and do not share it with untrusted parties.',
+      'Finova does not use cookies, device identifiers, or any form of usage profiling.',
+    ],
+  },
+  {
+    heading: 'Enforcement & Consequences',
+    body: [
+      'Violation of any of these terms — including unauthorized use, redistribution, reverse-engineering, or misuse of the app — will result in immediate termination of your right to use Finova.',
+      'Any individual or entity found to be in breach of these terms may be subject to legal action under applicable laws. We reserve the right to pursue all available legal remedies.',
+      'Finova is provided for personal use only. Commercial exploitation, resale, or use in any product or service without explicit written permission from the developer is a direct violation of these terms and will be acted upon accordingly.',
+    ],
+  },
+  {
+    heading: 'Copyright & Intellectual Property',
+    body: [
+      '© 2026 Abhiram Kasturi. All rights reserved. Finova, its name, design, logo, codebase, and all associated assets are the exclusive intellectual property of the developer.',
+      'You may not copy, reproduce, modify, distribute, or create derivative works from any part of Finova — including its UI design, source code, or branding — without prior written consent.',
+      'Unauthorized reproduction or distribution of Finova or any of its components constitutes copyright infringement and will be pursued under applicable intellectual property laws.',
+    ],
+  },
+];
+
 // Camera/edit icon for avatar overlay
 function CameraIcon() {
   return (
@@ -34,15 +86,83 @@ function CameraIcon() {
   );
 }
 
+// ── Terms Modal ──────────────────────────────────────────────────────────────
+function TermsModal({ visible, onClose }) {
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={modal.backdrop}>
+        <View style={modal.sheet}>
+          {/* Handle pill */}
+          <View style={modal.handle} />
+
+          {/* Header */}
+          <View style={modal.header}>
+            <Text style={modal.headerTitle}>Terms & Privacy</Text>
+            <TouchableOpacity onPress={onClose} style={modal.closeBtn} activeOpacity={0.75}>
+              <Text style={modal.closeX}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={modal.accentBar} />
+
+          {/* Scrollable content */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={modal.scrollContent}
+          >
+            <Text style={modal.intro}>
+              Please read the following carefully before using Finova. These terms govern your use of the app and explain how your data is handled.
+            </Text>
+
+            {TERMS_SECTIONS.map((section, i) => (
+              <View key={i} style={modal.section}>
+                <Text style={modal.sectionHeading}>{section.heading}</Text>
+                {section.body.map((para, j) => (
+                  <View key={j} style={modal.bulletRow}>
+                    <Text style={modal.bullet}>›</Text>
+                    <Text style={modal.para}>{para}</Text>
+                  </View>
+                ))}
+              </View>
+            ))}
+
+            {/* Footer note */}
+            <View style={modal.footerNote}>
+              <Text style={modal.footerText}>
+                Last updated · March 2026 · Finova v2.8{'\n'}© 2026 Abhiram Kasturi. All rights reserved.
+              </Text>
+            </View>
+
+            <View style={{ height: 8 }} />
+          </ScrollView>
+
+          {/* Understood button */}
+          <TouchableOpacity style={modal.agreeBtn} onPress={onClose} activeOpacity={0.84}>
+            <Text style={modal.agreeBtnText}>I Understand</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ── Main Screen ──────────────────────────────────────────────────────────────
 export default function CreateAccountScreen({ navigation }) {
   const { updateSettings } = useApp();
 
-  const [profileImage,     setProfileImage    ] = useState(null); // base64 data URI
+  const [profileImage,     setProfileImage    ] = useState(null);
   const [username,         setUsername        ] = useState('');
   const [age,              setAge             ] = useState('');
   const [selectedTheme,    setSelectedTheme   ] = useState('dark');
   const [selectedCurrency, setSelectedCurrency] = useState('INR');
   const [agreed,           setAgreed          ] = useState(false);
+  const [termsVisible,     setTermsVisible    ] = useState(false);
 
   const canProceed = username.trim().length > 0 && age.trim().length > 0 && agreed;
 
@@ -102,7 +222,6 @@ export default function CreateAccountScreen({ navigation }) {
                       <Text style={styles.avatarInitials}>{initials}</Text>
                     </View>
                 }
-                {/* Camera badge */}
                 <View style={styles.cameraBadge}>
                   <CameraIcon />
                 </View>
@@ -155,7 +274,14 @@ export default function CreateAccountScreen({ navigation }) {
                 {agreed && <Text style={styles.checkmark}>✓</Text>}
               </View>
               <Text style={styles.termsText}>
-                I agree to the <Text style={styles.termsLink}>Terms of Service</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>
+                {'I agree to the '}
+                <Text style={styles.termsLink} onPress={() => setTermsVisible(true)}>
+                  Terms of Service
+                </Text>
+                {' and '}
+                <Text style={styles.termsLink} onPress={() => setTermsVisible(true)}>
+                  Privacy Policy
+                </Text>
               </Text>
             </TouchableOpacity>
 
@@ -168,10 +294,14 @@ export default function CreateAccountScreen({ navigation }) {
           </ScrollView>
         </KeyboardAvoidingView>
       </ImageBackground>
+
+      {/* ── Terms Modal (outside ScrollView so it covers the whole screen) ── */}
+      <TermsModal visible={termsVisible} onClose={() => setTermsVisible(false)} />
     </View>
   );
 }
 
+// ── Screen Styles ─────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#222629' },
   bg:   { flex: 1, width, height },
@@ -187,7 +317,6 @@ const styles = StyleSheet.create({
 
   label: { fontFamily: 'Fungis-Bold', fontSize: 11, color: '#AEB784', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 },
 
-  // Avatar
   avatarRow:     { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 28 },
   avatarWrap:    { position: 'relative' },
   avatarImg:     { width: 80, height: 80, borderRadius: 40 },
@@ -233,4 +362,132 @@ const styles = StyleSheet.create({
   btnDisabled:  { backgroundColor: 'rgba(174,183,132,0.22)' },
   btnText:      { fontFamily: 'Fungis-Bold', fontSize: 16, color: '#222629', letterSpacing: 0.6 },
   btnTextDisabled: { color: 'rgba(255,255,255,0.30)' },
+});
+
+// ── Modal Styles ──────────────────────────────────────────────────────────────
+const modal = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.72)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#2C3020',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    maxHeight: height * 0.82,
+    paddingHorizontal: 24,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    borderWidth: 1,
+    borderColor: 'rgba(174,183,132,0.18)',
+    borderBottomWidth: 0,
+  },
+
+  handle: {
+    width: 38, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(174,183,132,0.35)',
+    alignSelf: 'center',
+    marginTop: 12, marginBottom: 20,
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  headerTitle: {
+    fontFamily: 'Fungis-Heavy',
+    fontSize: 22,
+    color: '#FFFFFF',
+  },
+  closeBtn: {
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  closeX: {
+    fontFamily: 'Fungis-Bold',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.55)',
+  },
+
+  accentBar: {
+    width: 36, height: 3,
+    backgroundColor: '#AEB784',
+    borderRadius: 2,
+    marginBottom: 20,
+  },
+
+  scrollContent: {
+    paddingBottom: 8,
+  },
+
+  intro: {
+    fontFamily: 'Fungis-Regular',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.50)',
+    lineHeight: 21,
+    marginBottom: 24,
+  },
+
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeading: {
+    fontFamily: 'Fungis-Bold',
+    fontSize: 11,
+    color: '#AEB784',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  bullet: {
+    fontFamily: 'Fungis-Bold',
+    fontSize: 16,
+    color: '#AEB784',
+    lineHeight: 22,
+    marginTop: 1,
+  },
+  para: {
+    flex: 1,
+    fontFamily: 'Fungis-Regular',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.65)',
+    lineHeight: 21,
+  },
+
+  footerNote: {
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderColor: 'rgba(174,183,132,0.15)',
+    marginTop: 4,
+    marginBottom: 20,
+  },
+  footerText: {
+    fontFamily: 'Fungis-Regular',
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.25)',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+
+  agreeBtn: {
+    marginTop: 12,
+    backgroundColor: '#AEB784',
+    paddingVertical: 15,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  agreeBtnText: {
+    fontFamily: 'Fungis-Bold',
+    fontSize: 16,
+    color: '#222629',
+    letterSpacing: 0.6,
+  },
 });
