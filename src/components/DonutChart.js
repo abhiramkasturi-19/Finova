@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import Svg, { G, Circle, Text as SvgText } from 'react-native-svg';
 import { lightColors, fonts } from '../theme/theme';
+// Note: colors prop is passed in from the parent so DonutChart respects dark/light mode.
 
 // Also export a helper so screens can show pct in their own legend
 export function getSlicePcts(data = []) {
@@ -18,6 +19,7 @@ export default function DonutChart({
   centerAmount = '',
   centerAmountColor,
   currency = '₹',
+  colors = lightColors,   // pass active theme colors so dark mode works
 }) {
   const PADDING = 10;
   const svgSize = size + PADDING * 2;
@@ -32,7 +34,7 @@ export default function DonutChart({
   if (total === 0) {
     return (
       <View style={{ width: svgSize, height: svgSize, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: lightColors.textMuted, fontSize: 13, fontFamily: fonts.regular }}>No expense data</Text>
+        <Text style={{ color: colors.textMuted, fontSize: 13, fontFamily: fonts.regular }}>No expense data</Text>
       </View>
     );
   }
@@ -77,7 +79,7 @@ export default function DonutChart({
 
         {/* Center label */}
         {centerLabel !== '' && (
-          <SvgText x={cx} y={cy - 12} textAnchor="middle" fontSize={11} fill={lightColors.textMuted} fontFamily={fonts.regular}>
+          <SvgText x={cx} y={cy - 12} textAnchor="middle" fontSize={11} fill={colors.textMuted} fontFamily={fonts.regular}>
             {centerLabel}
           </SvgText>
         )}
@@ -90,7 +92,7 @@ export default function DonutChart({
             textAnchor="middle" 
             fontSize={centerLabel !== '' ? 18 : 20} 
             fontFamily={fonts.heavy} 
-            fill={centerAmountColor || lightColors.textPrimary}
+            fill={centerAmountColor || colors.textPrimary}
           >
             {centerAmount}
           </SvgText>
@@ -98,10 +100,10 @@ export default function DonutChart({
 
         {centerAmount === '' && (
           <>
-            <SvgText x={cx} y={cy - 6} textAnchor="middle" fontSize={26} fontFamily={fonts.heavy} fill={lightColors.textPrimary}>
+            <SvgText x={cx} y={cy - 6} textAnchor="middle" fontSize={26} fontFamily={fonts.heavy} fill={colors.textPrimary}>
               {slices.length > 0 ? `${slices.reduce((a, b) => a.pct > b.pct ? a : b).pct}%` : ''}
             </SvgText>
-            <SvgText x={cx} y={cy + 18} textAnchor="middle" fontSize={12} fill={lightColors.textMuted} fontFamily={fonts.regular}>
+            <SvgText x={cx} y={cy + 18} textAnchor="middle" fontSize={12} fill={colors.textMuted} fontFamily={fonts.regular}>
               {slices.length > 0 ? slices.reduce((a, b) => a.pct > b.pct ? a : b).label : ''}
             </SvgText>
           </>

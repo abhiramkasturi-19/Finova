@@ -61,7 +61,7 @@ export default function AppGuideScreen({ navigation }) {
       toValue: 0,
       useNativeDriver: true,
       damping: 26,
-      stiffness: 24,
+      stiffness: 240,  // was 24 (typo) — now animates at the correct speed
       mass: 0.9,
     }).start();
   }, []);

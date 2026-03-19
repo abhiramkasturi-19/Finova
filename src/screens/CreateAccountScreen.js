@@ -1,5 +1,5 @@
 // src/screens/CreateAccountScreen.js
-// Finova v2.6 — Onboarding Page 2 — with profile picture upload
+// Finova v2.8 — Onboarding Page 2 — custom crop modal
 
 import React, { useState } from 'react';
 import {
@@ -23,6 +23,8 @@ const THEMES = [
   { label: '☀️  Light', value: 'light' },
   { label: '🌙  Dark',  value: 'dark'  },
 ];
+
+// Crop circle size and canvas dimensions
 
 // ── Terms content ────────────────────────────────────────────────────────────
 const TERMS_SECTIONS = [
@@ -76,17 +78,23 @@ const TERMS_SECTIONS = [
   },
 ];
 
-// Camera/edit icon for avatar overlay
+// ── Camera icon ───────────────────────────────────────────────────────────────
 function CameraIcon() {
   return (
     <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-      <Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="#222629" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <Path d="M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke="#222629" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path
+        d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+        stroke="#222629" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      />
+      <Path
+        d="M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"
+        stroke="#222629" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      />
     </Svg>
   );
 }
 
-// ── Terms Modal ──────────────────────────────────────────────────────────────
+// ── Terms Modal ───────────────────────────────────────────────────────────────
 function TermsModal({ visible, onClose }) {
   return (
     <Modal
@@ -98,28 +106,18 @@ function TermsModal({ visible, onClose }) {
     >
       <View style={modal.backdrop}>
         <View style={modal.sheet}>
-          {/* Handle pill */}
           <View style={modal.handle} />
-
-          {/* Header */}
           <View style={modal.header}>
             <Text style={modal.headerTitle}>Terms & Privacy</Text>
             <TouchableOpacity onPress={onClose} style={modal.closeBtn} activeOpacity={0.75}>
               <Text style={modal.closeX}>✕</Text>
             </TouchableOpacity>
           </View>
-
           <View style={modal.accentBar} />
-
-          {/* Scrollable content */}
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={modal.scrollContent}
-          >
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={modal.scrollContent}>
             <Text style={modal.intro}>
               Please read the following carefully before using Finova. These terms govern your use of the app and explain how your data is handled.
             </Text>
-
             {TERMS_SECTIONS.map((section, i) => (
               <View key={i} style={modal.section}>
                 <Text style={modal.sectionHeading}>{section.heading}</Text>
@@ -131,18 +129,13 @@ function TermsModal({ visible, onClose }) {
                 ))}
               </View>
             ))}
-
-            {/* Footer note */}
             <View style={modal.footerNote}>
               <Text style={modal.footerText}>
                 Last updated · March 2026 · Finova v2.8{'\n'}© 2026 Abhiram Kasturi. All rights reserved.
               </Text>
             </View>
-
             <View style={{ height: 8 }} />
           </ScrollView>
-
-          {/* Understood button */}
           <TouchableOpacity style={modal.agreeBtn} onPress={onClose} activeOpacity={0.84}>
             <Text style={modal.agreeBtnText}>I Understand</Text>
           </TouchableOpacity>
@@ -152,7 +145,7 @@ function TermsModal({ visible, onClose }) {
   );
 }
 
-// ── Main Screen ──────────────────────────────────────────────────────────────
+// ── Main Screen ───────────────────────────────────────────────────────────────
 export default function CreateAccountScreen({ navigation }) {
   const { updateSettings } = useApp();
 
@@ -173,10 +166,9 @@ export default function CreateAccountScreen({ navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
-      quality: 0.45,
+      quality: 0.5,
       base64: true,
     });
     if (!result.canceled && result.assets[0].base64) {
@@ -203,8 +195,11 @@ export default function CreateAccountScreen({ navigation }) {
       <ImageBackground source={require('../../assets/splash-icon.png')} style={styles.bg} resizeMode="cover">
         <View style={styles.fullOverlay} />
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.kav}>
-          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
               <Text style={styles.backText}>← Back</Text>
             </TouchableOpacity>
@@ -222,9 +217,7 @@ export default function CreateAccountScreen({ navigation }) {
                       <Text style={styles.avatarInitials}>{initials}</Text>
                     </View>
                 }
-                <View style={styles.cameraBadge}>
-                  <CameraIcon />
-                </View>
+                <View style={styles.cameraBadge}><CameraIcon /></View>
               </TouchableOpacity>
               <View style={styles.avatarHintWrap}>
                 <Text style={styles.avatarHint}>Tap to upload a photo</Text>
@@ -252,8 +245,15 @@ export default function CreateAccountScreen({ navigation }) {
             <Text style={styles.label}>Theme</Text>
             <View style={styles.chipsRow}>
               {THEMES.map(t => (
-                <TouchableOpacity key={t.value} style={[styles.chip, selectedTheme === t.value && styles.chipActive]} onPress={() => setSelectedTheme(t.value)} activeOpacity={0.8}>
-                  <Text style={[styles.chipText, selectedTheme === t.value && styles.chipTextActive]}>{t.label}</Text>
+                <TouchableOpacity
+                  key={t.value}
+                  style={[styles.chip, selectedTheme === t.value && styles.chipActive]}
+                  onPress={() => setSelectedTheme(t.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.chipText, selectedTheme === t.value && styles.chipTextActive]}>
+                    {t.label}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -262,31 +262,37 @@ export default function CreateAccountScreen({ navigation }) {
             <Text style={styles.label}>Currency</Text>
             <View style={styles.chipsRow}>
               {CURRENCIES.map(c => (
-                <TouchableOpacity key={c.code} style={[styles.chip, selectedCurrency === c.code && styles.chipActive]} onPress={() => setSelectedCurrency(c.code)} activeOpacity={0.8}>
-                  <Text style={[styles.chipText, selectedCurrency === c.code && styles.chipTextActive]}>{c.symbol} {c.code}</Text>
+                <TouchableOpacity
+                  key={c.code}
+                  style={[styles.chip, selectedCurrency === c.code && styles.chipActive]}
+                  onPress={() => setSelectedCurrency(c.code)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.chipText, selectedCurrency === c.code && styles.chipTextActive]}>
+                    {c.symbol} {c.code}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* ── Terms ── */}
-            <TouchableOpacity style={styles.termsRow} onPress={() => setAgreed(v => !v)} activeOpacity={0.8}>
+            <TouchableOpacity style={styles.termsRow} onPress={() => setAgreed(v => !v)} activeOpacity={0.75}>
               <View style={[styles.checkbox, agreed && styles.checkboxChecked]}>
                 {agreed && <Text style={styles.checkmark}>✓</Text>}
               </View>
               <Text style={styles.termsText}>
-                {'I agree to the '}
-                <Text style={styles.termsLink} onPress={() => setTermsVisible(true)}>
-                  Terms of Service
-                </Text>
-                {' and '}
-                <Text style={styles.termsLink} onPress={() => setTermsVisible(true)}>
-                  Privacy Policy
-                </Text>
+                I agree to the{' '}
+                <Text style={styles.termsLink} onPress={() => setTermsVisible(true)}>Terms & Privacy Policy</Text>
               </Text>
             </TouchableOpacity>
 
             {/* ── Continue ── */}
-            <TouchableOpacity style={[styles.btn, !canProceed && styles.btnDisabled]} onPress={handleContinue} disabled={!canProceed} activeOpacity={0.84}>
+            <TouchableOpacity
+              style={[styles.btn, !canProceed && styles.btnDisabled]}
+              onPress={handleContinue}
+              disabled={!canProceed}
+              activeOpacity={0.84}
+            >
               <Text style={[styles.btnText, !canProceed && styles.btnTextDisabled]}>Continue</Text>
             </TouchableOpacity>
 
@@ -295,8 +301,9 @@ export default function CreateAccountScreen({ navigation }) {
         </KeyboardAvoidingView>
       </ImageBackground>
 
-      {/* ── Terms Modal (outside ScrollView so it covers the whole screen) ── */}
+      {/* ── Modals ── */}
       <TermsModal visible={termsVisible} onClose={() => setTermsVisible(false)} />
+
     </View>
   );
 }
@@ -305,21 +312,21 @@ export default function CreateAccountScreen({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#222629' },
   bg:   { flex: 1, width, height },
-  fullOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.89)' },
+  fullOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.90)' },
   kav:  { flex: 1 },
   scroll: { paddingHorizontal: 28, paddingTop: 56 },
 
   backBtn:  { marginBottom: 28 },
   backText: { fontFamily: 'Fungis-Regular', fontSize: 15, color: 'rgba(255,255,255,0.55)' },
 
-  title: { fontFamily: 'Fungis-Heavy', fontSize: 46, color: '#FFFFFF', lineHeight: 54, marginBottom: 14 },
+  title:       { fontFamily: 'Fungis-Heavy', fontSize: 46, color: '#FFFFFF', lineHeight: 54, marginBottom: 14 },
   titleAccent: { width: 44, height: 3, backgroundColor: '#AEB784', borderRadius: 2, marginBottom: 32 },
 
   label: { fontFamily: 'Fungis-Bold', fontSize: 11, color: '#AEB784', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 },
 
-  avatarRow:     { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 28 },
-  avatarWrap:    { position: 'relative' },
-  avatarImg:     { width: 80, height: 80, borderRadius: 40 },
+  avatarRow:  { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 28 },
+  avatarWrap: { position: 'relative' },
+  avatarImg:  { width: 80, height: 80, borderRadius: 40 },
   avatarPlaceholder: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: 'rgba(174,183,132,0.20)',
@@ -335,8 +342,8 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: 'rgba(0,0,0,0.80)',
   },
   avatarHintWrap: { flex: 1 },
-  avatarHint:    { fontFamily: 'Fungis-Bold', fontSize: 14, color: '#FFFFFF', marginBottom: 4 },
-  avatarHintSub: { fontFamily: 'Fungis-Regular', fontSize: 12, color: 'rgba(255,255,255,0.40)', lineHeight: 18 },
+  avatarHint:     { fontFamily: 'Fungis-Bold', fontSize: 14, color: '#FFFFFF', marginBottom: 4 },
+  avatarHintSub:  { fontFamily: 'Fungis-Regular', fontSize: 12, color: 'rgba(255,255,255,0.40)', lineHeight: 18 },
 
   input: {
     backgroundColor: 'rgba(255,255,255,0.07)',
@@ -345,149 +352,57 @@ const styles = StyleSheet.create({
     fontFamily: 'Fungis-Regular', fontSize: 16, color: '#FFFFFF', marginBottom: 26,
   },
 
-  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 26 },
-  chip:     { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, borderWidth: 1, borderColor: 'rgba(174,183,132,0.35)', backgroundColor: 'rgba(255,255,255,0.04)' },
-  chipActive:    { backgroundColor: '#AEB784', borderColor: '#AEB784' },
-  chipText:      { fontFamily: 'Fungis-Regular', fontSize: 14, color: 'rgba(255,255,255,0.65)' },
-  chipTextActive:{ fontFamily: 'Fungis-Bold', color: '#222629' },
+  chipsRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 26 },
+  chip:           { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, borderWidth: 1, borderColor: 'rgba(174,183,132,0.35)', backgroundColor: 'rgba(255,255,255,0.04)' },
+  chipActive:     { backgroundColor: '#AEB784', borderColor: '#AEB784' },
+  chipText:       { fontFamily: 'Fungis-Regular', fontSize: 14, color: 'rgba(255,255,255,0.65)' },
+  chipTextActive: { fontFamily: 'Fungis-Bold', color: '#222629' },
 
-  termsRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 30 },
-  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 1.5, borderColor: 'rgba(174,183,132,0.45)', backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
+  termsRow:        { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 28 },
+  checkbox:        { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: 'rgba(174,183,132,0.45)', backgroundColor: 'rgba(255,255,255,0.05)', alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   checkboxChecked: { backgroundColor: '#AEB784', borderColor: '#AEB784' },
-  checkmark: { fontSize: 13, color: '#222629', fontWeight: '700' },
-  termsText: { flex: 1, fontFamily: 'Fungis-Regular', fontSize: 13, color: 'rgba(255,255,255,0.50)', lineHeight: 21 },
-  termsLink: { fontFamily: 'Fungis-Bold', color: '#AEB784' },
+  checkmark:       { fontSize: 12, color: '#222629', fontWeight: '700' },
+  termsText:       { fontFamily: 'Fungis-Regular', fontSize: 13, color: 'rgba(255,255,255,0.45)' },
+  termsLink:       { fontFamily: 'Fungis-Bold', color: '#AEB784' },
 
-  btn:          { backgroundColor: '#AEB784', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
-  btnDisabled:  { backgroundColor: 'rgba(174,183,132,0.22)' },
-  btnText:      { fontFamily: 'Fungis-Bold', fontSize: 16, color: '#222629', letterSpacing: 0.6 },
+  btn:             { backgroundColor: '#AEB784', paddingVertical: 16, borderRadius: 14, alignItems: 'center' },
+  btnDisabled:     { backgroundColor: 'rgba(174,183,132,0.22)' },
+  btnText:         { fontFamily: 'Fungis-Bold', fontSize: 16, color: '#222629', letterSpacing: 0.6 },
   btnTextDisabled: { color: 'rgba(255,255,255,0.30)' },
 });
 
-// ── Modal Styles ──────────────────────────────────────────────────────────────
+// ── Terms Modal Styles ────────────────────────────────────────────────────────
 const modal = StyleSheet.create({
   backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.72)',
-    justifyContent: 'flex-end',
+    flex: 1, backgroundColor: 'rgba(0,0,0,0.72)', justifyContent: 'flex-end',
   },
   sheet: {
     backgroundColor: '#2C3020',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    borderTopLeftRadius: 28, borderTopRightRadius: 28,
     maxHeight: height * 0.82,
     paddingHorizontal: 24,
     paddingBottom: Platform.OS === 'ios' ? 36 : 24,
-    borderWidth: 1,
-    borderColor: 'rgba(174,183,132,0.18)',
-    borderBottomWidth: 0,
+    borderWidth: 1, borderColor: 'rgba(174,183,132,0.18)', borderBottomWidth: 0,
   },
-
   handle: {
     width: 38, height: 4, borderRadius: 2,
     backgroundColor: 'rgba(174,183,132,0.35)',
-    alignSelf: 'center',
-    marginTop: 12, marginBottom: 20,
+    alignSelf: 'center', marginTop: 12, marginBottom: 20,
   },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  headerTitle: {
-    fontFamily: 'Fungis-Heavy',
-    fontSize: 22,
-    color: '#FFFFFF',
-  },
-  closeBtn: {
-    width: 32, height: 32, borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  closeX: {
-    fontFamily: 'Fungis-Bold',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.55)',
-  },
-
-  accentBar: {
-    width: 36, height: 3,
-    backgroundColor: '#AEB784',
-    borderRadius: 2,
-    marginBottom: 20,
-  },
-
-  scrollContent: {
-    paddingBottom: 8,
-  },
-
-  intro: {
-    fontFamily: 'Fungis-Regular',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.50)',
-    lineHeight: 21,
-    marginBottom: 24,
-  },
-
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeading: {
-    fontFamily: 'Fungis-Bold',
-    fontSize: 11,
-    color: '#AEB784',
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: 12,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 10,
-  },
-  bullet: {
-    fontFamily: 'Fungis-Bold',
-    fontSize: 16,
-    color: '#AEB784',
-    lineHeight: 22,
-    marginTop: 1,
-  },
-  para: {
-    flex: 1,
-    fontFamily: 'Fungis-Regular',
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.65)',
-    lineHeight: 21,
-  },
-
-  footerNote: {
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderColor: 'rgba(174,183,132,0.15)',
-    marginTop: 4,
-    marginBottom: 20,
-  },
-  footerText: {
-    fontFamily: 'Fungis-Regular',
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.25)',
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-
-  agreeBtn: {
-    marginTop: 12,
-    backgroundColor: '#AEB784',
-    paddingVertical: 15,
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  agreeBtnText: {
-    fontFamily: 'Fungis-Bold',
-    fontSize: 16,
-    color: '#222629',
-    letterSpacing: 0.6,
-  },
+  header:      { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  headerTitle: { fontFamily: 'Fungis-Heavy', fontSize: 22, color: '#FFFFFF' },
+  closeBtn:    { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  closeX:      { fontFamily: 'Fungis-Bold', fontSize: 13, color: 'rgba(255,255,255,0.55)' },
+  accentBar:   { width: 36, height: 3, backgroundColor: '#AEB784', borderRadius: 2, marginBottom: 20 },
+  scrollContent: { paddingBottom: 8 },
+  intro:         { fontFamily: 'Fungis-Regular', fontSize: 13, color: 'rgba(255,255,255,0.50)', lineHeight: 21, marginBottom: 24 },
+  section:       { marginBottom: 24 },
+  sectionHeading:{ fontFamily: 'Fungis-Bold', fontSize: 11, color: '#AEB784', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 },
+  bulletRow:     { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  bullet:        { fontFamily: 'Fungis-Bold', fontSize: 16, color: '#AEB784', lineHeight: 22, marginTop: 1 },
+  para:          { flex: 1, fontFamily: 'Fungis-Regular', fontSize: 13, color: 'rgba(255,255,255,0.65)', lineHeight: 21 },
+  footerNote:    { paddingTop: 16, borderTopWidth: 1, borderColor: 'rgba(174,183,132,0.15)', marginTop: 4, marginBottom: 20 },
+  footerText:    { fontFamily: 'Fungis-Regular', fontSize: 11, color: 'rgba(255,255,255,0.25)', textAlign: 'center', letterSpacing: 0.5 },
+  agreeBtn:      { marginTop: 12, backgroundColor: '#AEB784', paddingVertical: 15, borderRadius: 14, alignItems: 'center' },
+  agreeBtnText:  { fontFamily: 'Fungis-Bold', fontSize: 16, color: '#222629', letterSpacing: 0.6 },
 });

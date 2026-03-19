@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, Modal, Platform,
+  StyleSheet, Modal, Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
 import { lightColors, darkColors, spacing, radius, fonts } from '../theme/theme';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../data/categories';
@@ -81,7 +82,18 @@ export default function AddTransactionScreen({ navigation, route }) {
 
   const [type,           setType          ] = useState(editMode?.type     || 'expense');
   const [amount,         setAmount        ] = useState(editMode ? formatNumber(editMode.amount.toString()) : '');
-  const [category,       setCategory      ] = useState(editMode?.category || (type === 'expense' ? 'food' : 'salary'));
+  // When editing a transaction whose category was saved as 'others' + customCategory
+  // (meaning it was a saved custom cat), restore the internal 'custom_<name>' key
+  // so the correct chip is highlighted in the category picker.
+  const initCategory = (() => {
+    if (!editMode) return type === 'expense' ? 'food' : 'salary';
+    if (editMode.category === 'others' && editMode.customCategory?.trim()) {
+      return 'custom_' + editMode.customCategory.trim().toLowerCase();
+    }
+    return editMode.category;
+  })();
+
+  const [category,       setCategory      ] = useState(initCategory);
   const [customCategory, setCustomCategory] = useState(editMode?.customCategory || '');
   const [note,           setNote          ] = useState(editMode?.note     || '');
   const [day,            setDay           ] = useState(pad(initDate.getDate()));
@@ -376,8 +388,8 @@ export default function AddTransactionScreen({ navigation, route }) {
 // ─── Screen Styles ────────────────────────────────────────────────────────────
 
 const makeStyles = (colors) => StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: colors.bg },
-  content: { padding: spacing.lg, paddingTop: spacing.xl + 25, paddingBottom: 60 },
+  safe:    { flex: 1, backgroundColor: colors.bg, paddingBottom: -100, paddingTop: -50 },
+  content: { padding: spacing.lg, paddingTop: spacing.xl +20 , paddingBottom: 120 },
 
   header:    { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
   title:     { fontSize: 22, color: colors.textPrimary, fontFamily: fonts.heavy },

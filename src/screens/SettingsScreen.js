@@ -1,5 +1,5 @@
 // src/screens/SettingsScreen.js
-// Finova v2.7 — currency in Edit Profile, custom modals, creator credit
+// Finova v2.8 — currency in Edit Profile, custom modals, creator credit
 
 import React, { useState } from 'react';
 import {
@@ -41,8 +41,8 @@ function EditIcon({ color, size = 18 }) {
 function CameraIcon({ color }) {
   return (
     <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
-      <Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-      <Path d="M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <Path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -134,24 +134,24 @@ export default function SettingsScreen({ navigation }) {
     updateSettings, toggleDarkMode, importData, dispatch,
   } = useApp();
 
-  const [showDataManager,  setShowDataManager ] = useState(false);
-  const [editMode,         setEditMode        ] = useState(false);
-  const [editName,         setEditName        ] = useState('');
-  const [editAge,          setEditAge         ] = useState('');
-  const [editImage,        setEditImage       ] = useState('');
-  const [editCurrency,     setEditCurrency    ] = useState('');
-  const [logoutModalOpen,  setLogoutModalOpen ] = useState(false);
-  const [clearModalOpen,   setClearModalOpen  ] = useState(false);
+  const [showDataManager, setShowDataManager] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editAge, setEditAge] = useState('');
+  const [editImage, setEditImage] = useState('');
+  const [editCurrency, setEditCurrency] = useState('');
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [clearModalOpen, setClearModalOpen] = useState(false);
 
-  const colors       = settings.darkMode ? darkColors : lightColors;
+  const colors = settings.darkMode ? darkColors : lightColors;
   const overlayColor = settings.darkMode ? 'rgba(0,0,0,0.82)' : 'rgba(44,51,32,0.55)';
-  const s            = makeStyles(colors);
+  const s = makeStyles(colors);
 
   const openEdit = () => {
-    setEditName(settings.name  || '');
-    setEditAge(settings.age    || '');
+    setEditName(settings.name || '');
+    setEditAge(settings.age || '');
     setEditImage(settings.profileImage || '');
-    setEditCurrency(settings.currency  || '₹');
+    setEditCurrency(settings.currency || '₹');
     setEditMode(true);
   };
   const saveEdit = () => {
@@ -179,7 +179,7 @@ export default function SettingsScreen({ navigation }) {
 
   const handleDownload = async () => {
     try {
-      const data    = JSON.stringify({ transactions, settings, customCategories }, null, 2);
+      const data = JSON.stringify({ transactions, settings, customCategories }, null, 2);
       const fileUri = FileSystem.cacheDirectory + 'finova_backup.json';
       await FileSystem.writeAsStringAsync(fileUri, data);
       const isAvailable = await Sharing.isAvailableAsync();
@@ -195,7 +195,7 @@ export default function SettingsScreen({ navigation }) {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: 'application/json', copyToCacheDirectory: true });
       if (result.canceled) return;
-      const content  = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
       const imported = JSON.parse(content);
       if (!imported.transactions || !Array.isArray(imported.transactions)) throw new Error('Invalid');
       Alert.alert('Restore Data', 'This will replace all your current data with the backup. Continue?', [
@@ -211,31 +211,35 @@ export default function SettingsScreen({ navigation }) {
   const executeClear = async () => {
     setClearModalOpen(false);
     await AsyncStorage.clear();
-    dispatch({ type: 'LOAD_DATA', payload: {
-      transactions: [],
-      settings: {
-        name: settings.name, age: settings.age, currency: settings.currency,
-        darkMode: settings.darkMode, profileImage: settings.profileImage || '',
-      },
-    }});
+    dispatch({
+      type: 'LOAD_DATA', payload: {
+        transactions: [],
+        settings: {
+          name: settings.name, age: settings.age, currency: settings.currency,
+          darkMode: settings.darkMode, profileImage: settings.profileImage || '',
+        },
+      }
+    });
   };
 
   // Logout helpers
   const performLogout = async () => {
     setLogoutModalOpen(false);
     await AsyncStorage.clear();
-    dispatch({ type: 'LOAD_DATA', payload: {
-      transactions:     [],
-      settings:         { name: '', age: '', currency: '₹', darkMode: false, profileImage: '' },
-      customCategories: { expense: [], income: [] },
-    }});
+    dispatch({
+      type: 'LOAD_DATA', payload: {
+        transactions: [],
+        settings: { name: '', age: '', currency: '₹', darkMode: false, profileImage: '' },
+        customCategories: { expense: [], income: [] },
+      }
+    });
     navigation.reset({ index: 0, routes: [{ name: 'Welcome' }] });
   };
 
   const handleDownloadThenLogout = async () => {
     setLogoutModalOpen(false);
     try {
-      const data    = JSON.stringify({ transactions, settings, customCategories }, null, 2);
+      const data = JSON.stringify({ transactions, settings, customCategories }, null, 2);
       const fileUri = FileSystem.cacheDirectory + 'finova_backup.json';
       await FileSystem.writeAsStringAsync(fileUri, data);
       const isAvailable = await Sharing.isAvailableAsync();
@@ -244,10 +248,10 @@ export default function SettingsScreen({ navigation }) {
     await performLogout();
   };
 
-  const displayName  = settings.name || 'Your Name';
-  const displayMeta  = `${settings.age ? `Age ${settings.age}` : 'Age not set'} · ${settings.currency} ${CURRENCIES.find(c => c.sym === settings.currency)?.label ?? ''}`;
+  const displayName = settings.name || 'Your Name';
+  const displayMeta = `${settings.age ? `Age ${settings.age}` : 'Age not set'} · ${settings.currency} ${CURRENCIES.find(c => c.sym === settings.currency)?.label ?? ''}`;
   const profileImage = settings.profileImage || '';
-  const initials     = (settings.name || 'A')[0].toUpperCase();
+  const initials = (settings.name || 'A')[0].toUpperCase();
 
   return (
     <View style={s.root}>
@@ -292,8 +296,8 @@ export default function SettingsScreen({ navigation }) {
                     {editImage
                       ? <Image source={{ uri: editImage }} style={s.editAvatarImg} />
                       : <View style={s.editAvatarPlaceholder}>
-                          <Text style={s.editAvatarInitials}>{editName ? editName[0].toUpperCase() : initials}</Text>
-                        </View>
+                        <Text style={s.editAvatarInitials}>{editName ? editName[0].toUpperCase() : initials}</Text>
+                      </View>
                     }
                     <View style={s.cameraBadge}><CameraIcon color={colors.activePill} /></View>
                   </TouchableOpacity>
@@ -388,7 +392,7 @@ export default function SettingsScreen({ navigation }) {
               <View style={s.row}>
                 <View style={[s.iconBox, { backgroundColor: colors.surface2 }]}><Text>📊</Text></View>
                 <View style={s.rowInfo}><Text style={s.rowLabel}>Version</Text></View>
-                <Text style={s.rowMuted}>2.7.0</Text>
+                <Text style={s.rowMuted}>2.8.0</Text>
               </View>
               <TouchableOpacity style={[s.row, { borderBottomWidth: 0 }]} onPress={() => navigation.navigate('AppGuide')} activeOpacity={0.7}>
                 <View style={[s.iconBox, { backgroundColor: colors.surface2 }]}><Text>📖</Text></View>
@@ -405,7 +409,7 @@ export default function SettingsScreen({ navigation }) {
             {/* ── Creator Credit ── */}
             <View style={s.creditBlock}>
               <View style={s.creditDivider} />
-              <Text style={s.creditMadeBy}>crafted with by</Text>
+              <Text style={s.creditMadeBy}>crafted by</Text>
               <Text style={s.creditName}>Abhiram Kasturi</Text>
               <Text style={s.creditFinova}>Finova · 2026</Text>
             </View>
@@ -433,71 +437,71 @@ export default function SettingsScreen({ navigation }) {
 // ─── Screen Styles ────────────────────────────────────────────────────────────
 
 const makeStyles = (colors) => StyleSheet.create({
-  root:    { flex: 1 },
-  bg:      { width, height: '100%', flex: 1 },
+  root: { flex: 1 },
+  bg: { width, height: '100%', flex: 1 },
   overlay: { ...StyleSheet.absoluteFillObject },
-  safe:    { flex: 1 },
-  content: { padding: spacing.lg, paddingTop: spacing.xl + 10, paddingBottom: 40 },
+  safe: { flex: 1, paddingBottom: -100, paddingTop: -50 },
+  content: { padding: spacing.lg, paddingTop: spacing.xl + 50, paddingBottom: 60 },
 
-  title:    { fontSize: 26, color: colors.white, fontFamily: fonts.heavy },
+  title: { fontSize: 26, color: colors.white, fontFamily: fonts.heavy },
   subtitle: { fontSize: 13, color: colors.white, marginBottom: spacing.lg, fontFamily: fonts.regular },
 
   profileCard: { backgroundColor: colors.surface, borderRadius: radius.xl, padding: spacing.lg, marginBottom: spacing.lg, borderWidth: 1, borderColor: colors.accent },
-  profileRow:  { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  avatarWrap:  { flexShrink: 0 },
-  avatarImg:   { width: 80, height: 80, borderRadius: 40 },
-  avatar:      { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  avatarText:  { fontSize: 24, color: colors.activePill, fontFamily: fonts.bold },
+  profileRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  avatarWrap: { flexShrink: 0 },
+  avatarImg: { width: 80, height: 80, borderRadius: 40 },
+  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 24, color: colors.activePill, fontFamily: fonts.bold },
   profileInfo: { flex: 1 },
   profileName: { fontSize: 18, color: colors.textPrimary, fontFamily: fonts.heavy },
   profileMeta: { fontSize: 12, color: colors.textMuted, marginTop: 3, fontFamily: fonts.regular },
 
-  editIconBtn:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, alignSelf: 'flex-start' },
+  editIconBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14, alignSelf: 'flex-start' },
   editIconLabel: { fontFamily: fonts.regular, fontSize: 12, color: colors.textMuted },
 
-  editModeTitle:         { fontFamily: fonts.heavy, fontSize: 16, color: colors.textPrimary, marginBottom: 18 },
-  editAvatarBtn:         { alignSelf: 'center', position: 'relative', marginBottom: 8 },
-  editAvatarImg:         { width: 80, height: 80, borderRadius: 40 },
+  editModeTitle: { fontFamily: fonts.heavy, fontSize: 16, color: colors.textPrimary, marginBottom: 18 },
+  editAvatarBtn: { alignSelf: 'center', position: 'relative', marginBottom: 8 },
+  editAvatarImg: { width: 80, height: 80, borderRadius: 40 },
   editAvatarPlaceholder: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
-  editAvatarInitials:    { fontFamily: fonts.heavy, fontSize: 28, color: colors.activePill },
-  cameraBadge:           { position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.surface },
-  editAvatarHint:        { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, textAlign: 'center', marginBottom: 20 },
-  editLabel:             { fontFamily: fonts.bold, fontSize: 10, color: colors.textMuted, letterSpacing: 1.5, marginBottom: 6 },
-  editInput:             { backgroundColor: colors.surface2, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 11, fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, marginBottom: 16 },
+  editAvatarInitials: { fontFamily: fonts.heavy, fontSize: 28, color: colors.activePill },
+  cameraBadge: { position: 'absolute', bottom: 0, right: 0, width: 26, height: 26, borderRadius: 13, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.surface },
+  editAvatarHint: { fontFamily: fonts.regular, fontSize: 11, color: colors.textMuted, textAlign: 'center', marginBottom: 20 },
+  editLabel: { fontFamily: fonts.bold, fontSize: 10, color: colors.textMuted, letterSpacing: 1.5, marginBottom: 6 },
+  editInput: { backgroundColor: colors.surface2, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 11, fontFamily: fonts.bold, fontSize: 14, color: colors.textPrimary, marginBottom: 16 },
 
-  currencyChipsRow:       { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
-  currencyChip:           { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2 },
-  currencyChipActive:     { backgroundColor: colors.accent, borderColor: colors.accent },
-  currencyChipText:       { fontFamily: fonts.bold, fontSize: 13, color: colors.accentLight },
+  currencyChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
+  currencyChip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface2 },
+  currencyChipActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  currencyChipText: { fontFamily: fonts.bold, fontSize: 13, color: colors.accentLight },
   currencyChipTextActive: { color: colors.activePill },
 
-  editActions:   { flexDirection: 'row', gap: 10, marginTop: 4 },
-  cancelBtn:     { flex: 1, paddingVertical: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
+  editActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
+  cancelBtn: { flex: 1, paddingVertical: 12, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center' },
   cancelBtnText: { fontFamily: fonts.bold, fontSize: 13, color: colors.textMuted },
-  saveBtn:       { flex: 1, paddingVertical: 12, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: 'center' },
-  saveBtnText:   { fontFamily: fonts.bold, fontSize: 13, color: colors.activePill },
+  saveBtn: { flex: 1, paddingVertical: 12, borderRadius: radius.md, backgroundColor: colors.accent, alignItems: 'center' },
+  saveBtnText: { fontFamily: fonts.bold, fontSize: 13, color: colors.activePill },
 
-  sectionLabel:  { fontSize: 11, color: colors.white, letterSpacing: 1, paddingBottom: 10, fontFamily: fonts.bold },
+  sectionLabel: { fontSize: 11, color: colors.white, letterSpacing: 1, paddingBottom: 10, fontFamily: fonts.bold },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: spacing.sm },
-  chevron:       { fontSize: 10, color: colors.textMuted },
+  chevron: { fontSize: 10, color: colors.white },
 
-  card:     { backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.lg, overflow: 'hidden' },
-  row:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 },
-  iconBox:  { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  rowInfo:  { flex: 1 },
+  card: { backgroundColor: colors.surface, borderRadius: radius.lg, marginBottom: spacing.lg, overflow: 'hidden' },
+  row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, gap: 12 },
+  iconBox: { width: 38, height: 38, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  rowInfo: { flex: 1 },
   rowLabel: { fontSize: 13, color: colors.textPrimary, fontFamily: fonts.bold },
-  rowHint:  { fontSize: 11, color: colors.textMuted, marginTop: 2, fontFamily: fonts.regular },
+  rowHint: { fontSize: 11, color: colors.textMuted, marginTop: 2, fontFamily: fonts.regular },
   rowMuted: { fontSize: 13, color: colors.textMuted, fontFamily: fonts.regular },
 
-  logoutBtn:  { marginTop: 4, marginBottom: 28, borderRadius: radius.lg, paddingVertical: 15, alignItems: 'center', backgroundColor: colors.wineRed },
+  logoutBtn: { marginTop: 4, marginBottom: 28, borderRadius: radius.lg, paddingVertical: 15, alignItems: 'center', backgroundColor: colors.wineRed },
   logoutText: { fontFamily: fonts.bold, fontSize: 15, color: '#FFFFFF', letterSpacing: 0.4 },
 
   // ── Creator credit ──
   creditBlock: { alignItems: 'center', paddingBottom: 16 },
   creditDivider: { width: 36, height: 2, borderRadius: 1, backgroundColor: 'rgba(174,183,132,0.30)', marginBottom: 16 },
-  creditMadeBy: { fontFamily: fonts.regular, fontSize: 11, color:colors.white, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
-  creditName:   { fontFamily: fonts.heavy, fontSize: 18, color: '#AEB784', letterSpacing: 0.3, marginBottom: 4 },
-  creditFinova: { fontFamily: fonts.regular, fontSize: 11, color: colors.white, letterSpacing: 0.5 , paddingBottom: 50},
+  creditMadeBy: { fontFamily: fonts.regular, fontSize: 11, color: colors.white, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 },
+  creditName: { fontFamily: fonts.heavy, fontSize: 18, color: '#AEB784', letterSpacing: 0.3, marginBottom: 4 },
+  creditFinova: { fontFamily: fonts.regular, fontSize: 11, color: colors.white, letterSpacing: 0.5, paddingBottom: 50 },
 });
 
 // ─── Custom Modal Styles ──────────────────────────────────────────────────────

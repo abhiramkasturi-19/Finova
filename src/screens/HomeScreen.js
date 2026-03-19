@@ -118,6 +118,7 @@ export default function HomeScreen({ navigation }) {
               centerAmount={fmt(totalExpense)}
               centerAmountColor={colors.expense}
               currency={cur}
+              colors={colors}
             />
           </View>
           {donutData.length === 0
@@ -160,9 +161,9 @@ export default function HomeScreen({ navigation }) {
 }
 
 const makeStyles = (colors) => StyleSheet.create({
-  safe:    { flex: 1, backgroundColor: colors.bg },
+  safe:    { flex: 1, backgroundColor: colors.bg, paddingBottom: -100, paddingTop: -50 },
   scroll:  { flex: 1 },
-  content: { padding: spacing.md, paddingTop: 20, paddingBottom: 120 },
+  content: { padding: spacing.md, paddingTop: 50, paddingBottom: 100 },
 
   // Header
   header:       { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },

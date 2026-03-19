@@ -36,7 +36,7 @@ export default function WelcomeScreen({ navigation }) {
 
         <View style={styles.content}>
           <Text style={styles.headline}>Finova</Text>
-          <Text style={styles.tagline}>Your wealth, in full view.</Text>
+          <Text style={styles.tagline}>Your Wealth, In Full View.</Text>
 
           <View style={styles.linesRow}>
             <View style={styles.line} />
