@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity,
-  StyleSheet, Modal, Dimensions, Alert, Animated,
+  StyleSheet, Modal, Dimensions, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Text as SvgText, Path } from 'react-native-svg';
@@ -9,6 +9,33 @@ import { useApp } from '../context/AppContext';
 import { lightColors, darkColors, spacing, radius, fonts } from '../theme/theme';
 import { getCat } from '../data/categories';
 import DonutChart from '../components/DonutChart';
+
+// ─── Delete Transaction Confirm Modal ─────────────────────────────────────────
+function DeleteTxnModal({ visible, onCancel, onConfirm }) {
+  return (
+    <Modal visible={visible} transparent animationType="slide" statusBarTranslucent onRequestClose={onCancel}>
+      <View style={cm.sheetBackdrop}>
+        <View style={cm.sheet}>
+          <View style={cm.handle} />
+          <View style={[cm.iconRing, cm.iconRingDanger]}>
+            <Text style={cm.iconEmoji}>🗑️</Text>
+          </View>
+          <Text style={cm.title}>Delete Transaction</Text>
+          <Text style={cm.body}>
+            This will permanently remove this transaction.{' '}
+            <Text style={cm.bodyHighlight}>This cannot be undone.</Text>
+          </Text>
+          <TouchableOpacity style={cm.destructiveBtn} onPress={onConfirm} activeOpacity={0.84}>
+            <Text style={cm.destructiveBtnText}>Yes, Delete It</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={cm.ghostBtn} onPress={onCancel} activeOpacity={0.75}>
+            <Text style={cm.ghostBtnText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 const { width: SCREEN_W } = Dimensions.get('window');
 
@@ -239,6 +266,7 @@ export default function ActivityScreen({ navigation }) {
   const [calMode, setCalMode] = useState('daily');
   const [selectedTxn, setSelectedTxn] = useState(null);
   const [calDateKey, setCalDateKey] = useState(null);
+  const [deleteTxnModal, setDeleteTxnModal] = useState({ visible: false, txnId: null });
   const s = makeStyles(colors);
 
   const fmt = n => `${cur}${Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
@@ -288,11 +316,13 @@ export default function ActivityScreen({ navigation }) {
   }, [calDateKey, transactions, filtered]);
 
   const handleEdit = (txn) => { setSelectedTxn(null); navigation.navigate('AddTransaction', { transaction: txn }); };
-  const handleDelete = (id) => {
-    Alert.alert('Delete', 'Delete this transaction?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { deleteTransaction(id); setSelectedTxn(null); } },
-    ]);
+  const handleDelete = (txnId) => {
+    setSelectedTxn(null);
+    setDeleteTxnModal({ visible: true, txnId });
+  };
+  const confirmDeleteTxn = () => {
+    deleteTransaction(deleteTxnModal.txnId);
+    setDeleteTxnModal({ visible: false, txnId: null });
   };
 
   return (
@@ -415,6 +445,11 @@ export default function ActivityScreen({ navigation }) {
         onDelete={handleDelete}
         customCategories={customCategories}
       />
+      <DeleteTxnModal
+        visible={deleteTxnModal.visible}
+        onCancel={() => setDeleteTxnModal({ visible: false, txnId: null })}
+        onConfirm={confirmDeleteTxn}
+      />
     </SafeAreaView>
   );
 }
@@ -517,4 +552,73 @@ const makeStyles = (colors) => StyleSheet.create({
   txnCat: { fontSize: 15, color: colors.textPrimary, fontFamily: fonts.bold },
   txnDate: { fontSize: 11, color: colors.textMuted, marginTop: 2, fontFamily: fonts.regular },
   txnAmt: { fontSize: 15, fontFamily: fonts.heavy },
+});
+
+// ─── Shared Modal Styles (matches AddTransactionScreen cm palette) ─────────────
+const cm = StyleSheet.create({
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#2C3020',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 24,
+    paddingBottom: 28,
+    borderWidth: 1,
+    borderColor: 'rgba(174,183,132,0.18)',
+    borderBottomWidth: 0,
+    alignItems: 'center',
+  },
+  handle: {
+    width: 38, height: 4, borderRadius: 2,
+    backgroundColor: 'rgba(174,183,132,0.35)',
+    marginTop: 12, marginBottom: 24,
+  },
+  iconRing: {
+    width: 68, height: 68, borderRadius: 34,
+    backgroundColor: 'rgba(174,183,132,0.12)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(174,183,132,0.30)',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 18,
+  },
+  iconRingDanger: {
+    backgroundColor: 'rgba(158,90,90,0.15)',
+    borderColor: 'rgba(158,90,90,0.35)',
+  },
+  iconEmoji: { fontSize: 30 },
+  title: {
+    fontFamily: 'Fungis-Heavy',
+    fontSize: 20, color: '#FFFFFF',
+    textAlign: 'center', marginBottom: 10,
+  },
+  body: {
+    fontFamily: 'Fungis-Regular',
+    fontSize: 13, color: 'rgba(255,255,255,0.52)',
+    textAlign: 'center', lineHeight: 21, marginBottom: 24,
+  },
+  bodyHighlight: { fontFamily: 'Fungis-Bold', color: '#AEB784' },
+  destructiveBtn: {
+    width: '100%',
+    backgroundColor: 'rgba(158,90,90,0.18)',
+    borderWidth: 1, borderColor: 'rgba(158,90,90,0.45)',
+    borderRadius: 14, paddingVertical: 15,
+    alignItems: 'center', marginBottom: 12,
+  },
+  destructiveBtnText: {
+    fontFamily: 'Fungis-Bold',
+    fontSize: 15, color: '#D4918F', letterSpacing: 0.3,
+  },
+  ghostBtn: {
+    width: '100%', borderRadius: 14,
+    paddingVertical: 14, alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  ghostBtnText: {
+    fontFamily: 'Fungis-Regular',
+    fontSize: 14, color: 'rgba(255,255,255,0.40)',
+  },
 });

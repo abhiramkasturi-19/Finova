@@ -167,7 +167,6 @@ export default function SettingsScreen({ navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true, aspect: [1, 1], quality: 0.45, base64: true,
     });
     if (!result.canceled && result.assets[0].base64) {
@@ -210,16 +209,21 @@ export default function SettingsScreen({ navigation }) {
   // Clear — triggered by custom modal confirm
   const executeClear = async () => {
     setClearModalOpen(false);
-    await AsyncStorage.clear();
-    dispatch({
-      type: 'LOAD_DATA', payload: {
-        transactions: [],
-        settings: {
-          name: settings.name, age: settings.age, currency: settings.currency,
-          darkMode: settings.darkMode, profileImage: settings.profileImage || '',
-        },
-      }
-    });
+    const clearedData = {
+      transactions: [],
+      settings: {
+        name:         settings.name,
+        age:          settings.age,
+        currency:     settings.currency,
+        darkMode:     settings.darkMode,
+        profileImage: settings.profileImage || '',
+      },
+      customCategories,   // preserved — Clear All Data must NOT wipe custom categories
+    };
+    // Only rewrite @flo_data — do NOT call AsyncStorage.clear() here.
+    // That would erase hasOnboarded and send user back to onboarding on next launch.
+    await AsyncStorage.setItem('@flo_data', JSON.stringify(clearedData));
+    dispatch({ type: 'LOAD_DATA', payload: clearedData });
   };
 
   // Logout helpers

@@ -68,9 +68,9 @@ export default function HomeScreen({ navigation }) {
 
         {/* Header */}
         <View style={s.header}>
-          <View>
+          <View style={{ flex: 1, marginRight: 12 }}>
             <Text style={s.greeting}>{greeting} 👋</Text>
-            <Text style={s.username}>{settings.name || 'User'}</Text>
+            <Text style={s.username} numberOfLines={1} ellipsizeMode="tail">{settings.name || 'User'}</Text>
           </View>
           {/* Profile avatar — photo if available, initial otherwise */}
           <View style={s.avatarWrap}>
@@ -148,7 +148,13 @@ export default function HomeScreen({ navigation }) {
             {recent.length === 0
               ? <Text style={s.empty}>No transactions yet. Tap + to add one.</Text>
               : recent.map(t => (
-                  <TransactionItem key={t.id} transaction={t} currency={cur} colors={colors} />
+                  <TouchableOpacity
+                    key={t.id}
+                    activeOpacity={0.72}
+                    onPress={() => navigation.navigate('AddTransaction', { transaction: t })}
+                  >
+                    <TransactionItem transaction={t} currency={cur} colors={colors} />
+                  </TouchableOpacity>
                 ))
             }
           </View>

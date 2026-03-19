@@ -66,17 +66,10 @@ export default function AppGuideScreen({ navigation }) {
     }).start();
   }, []);
 
-  const handleClose = () => {
-    Animated.spring(slideAnim, {
-      toValue: SCREEN_HEIGHT,
-      useNativeDriver: true,
-      damping: 260,
-      stiffness: 2400,
-      mass: 1,
-    }).start(() => {
-      navigation.goBack();
-    });
-  };
+  // Instant close — no exit animation.
+  // The spring exit was causing a grey flash (transparent modal background
+  // revealing itself while the slide played). Instant goBack() is clean.
+  const handleClose = () => navigation.goBack();
 
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -121,7 +114,7 @@ export default function AppGuideScreen({ navigation }) {
             </View>
           ))}
 
-          <Text style={styles.footnote}>Finova v2.6.0 · All data stored locally.</Text>
+          <Text style={styles.footnote}>Finova v2.8.0 · All data stored locally.</Text>
           <View style={{ height: 40 }} />
         </ScrollView>
         </Animated.View>

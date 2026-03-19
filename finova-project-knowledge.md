@@ -31,6 +31,7 @@
 22. QA Init Check Script
 23. Security & Robustness Notes
 24. Critical Rules for Any Agent
+25. Future Work — v2.9.0
 
 ---
 
@@ -59,7 +60,7 @@
 - Log Out with optional data download before clearing
 
 ### Current App Version
-**2.8.0 — Terms Modal, Custom Dialogs, Creator Credit & Keyboard Fix**
+**2.8.0 — QA Fixes, Transition Refinement & Layout Polish**
 
 ---
 
@@ -89,9 +90,8 @@
 }
 ```
 
-> ⚠️ `@react-navigation/bottom-tabs` is installed but NOT used. `MainTabs` is a fully custom animated component in `App.js`.
-
-> ⚠️ `expo-image-manipulator` was trialled and removed in v2.8.0. Do NOT add it back.
+> ⚠️ `@react-navigation/bottom-tabs` installed but NOT used. `MainTabs` is fully custom in `App.js`.
+> ⚠️ `expo-image-manipulator` was trialled and permanently removed. Do NOT add it back.
 
 ---
 
@@ -126,7 +126,7 @@ export const lightColors = {
 ### Dark Theme — "Designer Modern"
 ```js
 export const darkColors = {
-  bg:          '#222629',
+  bg:          '#222629',   // ← was '#222222', corrected in v2.8.0
   surface:     '#474B47',
   surface2:    '#6B6E70',
   accent:      '#AEB784',
@@ -154,7 +154,7 @@ export const darkColors = {
 - Overlay on DataInfo / Login: `rgba(0,0,0,0.88–0.96)`
 - Accent: `#AEB784` | Text: `#FFFFFF`
 
-### Modal / Bottom Sheet Surface (v2.8)
+### Modal / Bottom Sheet Surface
 - Sheet bg: `#2C3020` | Border: `rgba(174,183,132,0.18)` | Handle: `rgba(174,183,132,0.35)` 38×4px | Backdrop: `rgba(0,0,0,0.72–0.75)`
 
 ---
@@ -167,7 +167,7 @@ Keys must be exactly:
 'Fungis-Bold':    require('./assets/FUNGIS/fonts/OpenType-TT/FUNGIS Bold.ttf'),
 'Fungis-Heavy':   require('./assets/FUNGIS/fonts/OpenType-TT/FUNGIS Heavy.ttf'),
 ```
-Never `FUNGIS-*` — silent system font fallback.
+Never `FUNGIS-*` — silent system font fallback, no error thrown.
 
 ---
 
@@ -185,7 +185,7 @@ Never `FUNGIS-*` — silent system font fallback.
 | Bills | ⚡ | `#3993DD` |
 | Others | 📦 | `#221E22` |
 
-Custom categories auto-assigned unique colors from `DESIGNER_PALETTE` (25 colors) in `AppContext.js`.
+Custom categories use a 25-colour `DESIGNER_PALETTE` in `AppContext.js`. No two share a colour.
 
 ---
 
@@ -199,91 +199,143 @@ Custom categories auto-assigned unique colors from `DESIGNER_PALETTE` (25 colors
 
 ### 10.2 LoginScreen *(unchanged — v2.6)*
 **File:** `src/screens/LoginScreen.js`
-- `expo-document-picker` picks `.json` → validates → `importData()` → sets `hasOnboarded:'true'` → resets nav to `Main`
-- Invalid file → error Alert
+- `expo-document-picker` → validate → `importData()` → `hasOnboarded:'true'` → reset to `Main`
+- Invalid file → Alert, no crash
 
 ### 10.3 CreateAccountScreen *(updated — v2.8)*
 **File:** `src/screens/CreateAccountScreen.js`
 
-**Profile Picture:** `launchImageLibraryAsync({ allowsEditing: true, aspect:[1,1], quality:0.5, base64:true })`. No `mediaTypes` prop (SDK 55 deprecated). Native OS square crop. No custom crop UI.
+**Profile Picture:** `launchImageLibraryAsync({ allowsEditing:true, aspect:[1,1], quality:0.5, base64:true })`. No `mediaTypes` prop. Native OS square crop.
 
-**Terms row (v2.8):** Single line — checkbox + "I agree to the Terms & Privacy Policy". Row tap = toggle checkbox. Link tap = open `TermsModal`. No card, no extra chrome.
+**Terms row:** Single line — checkbox + "I agree to the Terms & Privacy Policy". Row tap = toggle checkbox. Link tap = open `TermsModal`.
 
-**TermsModal — 6 sections:**
-1. Terms of Service
-2. Data Storage & Responsibility
-3. Personal Information
-4. Privacy Policy
-5. Enforcement & Consequences *(violation → termination + legal action)*
-6. Copyright & Intellectual Property *(© 2026 Abhiram Kasturi, all rights reserved)*
-
-Footer: `Last updated · March 2026 · Finova v2.8 · © 2026 Abhiram Kasturi. All rights reserved.`
-
-"I Understand" closes modal only — does NOT auto-tick checkbox. User must tick manually (intentional legal consent UX).
+**TermsModal — 6 sections:** Terms of Service, Data Storage & Responsibility, Personal Information, Privacy Policy, Enforcement & Consequences, Copyright & Intellectual Property. Footer: `© 2026 Abhiram Kasturi. All rights reserved.` "I Understand" closes modal only — does NOT auto-tick checkbox.
 
 **`canProceed`:** `username.trim().length > 0 && age.trim().length > 0 && agreed`
+
+**Layout (Manual):** `SafeAreaView: paddingTop:-50, paddingBottom:-100`. `ScrollView content: paddingTop:56`.
 
 ### 10.4 DataInfoScreen *(unchanged — v2.5)*
 - "Enter Finova →" sets `hasOnboarded:'true'`, resets nav to `Main`
 
-### 10.5 AppGuideScreen *(unchanged — v2.6)*
-- Pan-down modal (`presentation:'modal'`, `slide_from_bottom`)
-- Footnote: `Finova v2.8.0 · All data stored locally.`
+### 10.5 AppGuideScreen *(updated — v2.8)*
+**File:** `src/screens/AppGuideScreen.js`
+
+**Transition architecture (v2.8):**
+- Stack preset: `panDownManual` (`presentation:'transparentModal'`, `animation:'none'`)
+- Internal entry: `Animated.Value(SCREEN_HEIGHT)` → spring to `0` on mount — slides up from bottom, zero white flash
+- Internal exit (`handleClose`): calls `navigation.goBack()` **immediately** with no spring-down delay. This was changed from a 2-step spring-then-goBack to instant `goBack()` — removes the ~300ms delay and the grey-flash (underlying background reveal) that occurred during the exit spring
+- Spring config fixed: `stiffness:240` (was `stiffness:24` — typo causing extremely slow entry)
+
+**Footnote:** `Finova v2.8.0 · All data stored locally.`
 
 ### 10.6 SettingsScreen *(updated — v2.8)*
 **File:** `src/screens/SettingsScreen.js`
 
-**Profile Card:** View / Edit inline. Edit: name, age, currency chip, photo picker.
+**Profile Picture picker:** `launchImageLibraryAsync` has NO `mediaTypes` prop — `ImagePicker.MediaTypeOptions` removed entirely.
 
-**Preferences:** Dark Mode toggle only (currency moved to Edit Profile in v2.7).
+**Edit Profile:** Name, age, currency chip, photo. `saveEdit` → `updateSettings`.
+
+**Preferences:** Dark Mode toggle only.
 
 **Data Management (collapsible):** Download / Upload / Clear All Data.
 
-**ClearDataModal (NOT system Alert):**
-- Danger icon ring (red tint), warning pill ("⚠️ We recommend downloading a backup first.")
-- "Yes, Clear Everything" → wipes `transactions` only, keeps `settings` + `customCategories`
-- "Cancel" ghost
-
-**LogoutModal (NOT system Alert):**
-- Icon ring (sage tint), body text explains data is device-only
-- "📥 Download & Log Out" (sage fill primary)
-- "Log Out Without Saving" (wine-red outlined destructive)
-- "Cancel" (ghost)
-- Both destructive paths: `AsyncStorage.clear()` → `navigation.reset` to `Welcome`
-
-**App section:** Version `2.8.0`, App Guide link (panDownModal).
-
-**Creator Credit (always visible at bottom):**
+**`executeClear` (fixed v2.8):**
+```js
+const executeClear = async () => {
+  setClearModalOpen(false);
+  const clearedData = {
+    transactions: [],
+    settings: { name, age, currency, darkMode, profileImage: profileImage || '' },
+    customCategories,   // preserved
+  };
+  await AsyncStorage.setItem('@flo_data', JSON.stringify(clearedData));
+  dispatch({ type: 'LOAD_DATA', payload: clearedData });
+};
 ```
-────────────────
+- `AsyncStorage.clear()` is ONLY called in `performLogout`. Never in `executeClear`.
+- `hasOnboarded` survives "Clear All Data" — user stays in Main on next launch.
+- `customCategories` survives "Clear All Data".
+
+**LogoutModal:** `performLogout` calls `AsyncStorage.clear()` + `navigation.reset` to `Welcome`.
+
+**App section:** Version `2.8.0`, App Guide link.
+
+**Creator Credit (bottom of ScrollView):**
+```
+── (sage divider) ──
 crafted with ♥ by    Fungis-Regular 11px uppercase rgba(255,255,255,0.30)
 Abhiram Kasturi       Fungis-Heavy 18px #AEB784
 Finova · 2026         Fungis-Regular 11px rgba(255,255,255,0.22)
 ```
 
+**Layout (Manual):** `SafeAreaView: paddingTop:-50, paddingBottom:-100`. `ScrollView content: paddingTop:spacing.xl+10, paddingBottom:100`.
+
 ### 10.7 AddTransactionScreen *(updated — v2.8)*
 **File:** `src/screens/AddTransactionScreen.js`
 
-- Pan-down modal. Drag handle pill + X close button.
-- **Keyboard fix (v2.8):** `KeyboardAvoidingView` REMOVED. `app.json android` sets `"softwareKeyboardLayoutMode":"pan"`. This is the correct OS-level fix. KAV is broken inside Android modal screens and must NOT be re-added.
-- `paddingBottom: 120` on ScrollView content.
-- Amount: thousand-separator, decimal-pad keyboard.
-- Category: base chips + saved custom chips (long-press → `DeleteCatModal`) + "+ New" chip.
-- "+ New": inline input, saves to AppContext `customCategories`, auto-selects.
-- "Others": shows `customCategory` name input below chips.
-- Note: multiline TextInput, always scrolls into view above keyboard.
-- Date & Time: collapsible section.
-- Validation: custom `ErrorModal` for invalid amount, date, missing category name. NOT system Alert.
-- Delete custom category: custom `DeleteCatModal` bottom sheet. NOT system Alert.
-- Submit: `editTransaction` (edit mode) or `addTransaction` → `navigation.goBack()`.
+**Transition architecture (v2.8) — matches AppGuide:**
+- Stack preset: `panDownManual` (`presentation:'transparentModal'`, `animation:'none'`)
+- Internal entry: `Animated.Value(SCREEN_HEIGHT)` → spring to `0` on mount
+- Internal exit: `navigation.goBack()` called immediately — no spring-down delay, no grey flash
+- This gives pixel-perfect control over the slide animation without the native modal white/grey background flash
 
-### 10.8 HomeScreen *(unchanged — v2.6)*
-### 10.9 ActivityScreen *(updated — v2.7)*
-- AnimPill spring-press on all selectors
-- Calendar mode buttons: `gap:8`, `paddingVertical:10`, `minHeight:40`, `fontSize:13`
+**Amount input:** `maxLength={12}` prevents card overflow.
 
-### 10.10 StatsScreen *(updated — v2.7)*
-- AnimPill spring-press on period filter pills
+**Keyboard fix:** `softwareKeyboardLayoutMode:'pan'` in `app.json android`. No `KeyboardAvoidingView`.
+
+**ScrollView:** `paddingBottom:120` ensures Record button scrolls above keyboard.
+
+**Layout (Manual):** `SafeAreaView: paddingTop:-50, paddingBottom:-100`. `ScrollView content: paddingTop:spacing.xl+20, paddingBottom:120`.
+
+**Validation:** Custom `ErrorModal` for invalid amount, date, missing category name (NOT system Alert).
+
+**Delete custom category:** `DeleteCatModal` bottom sheet (NOT system Alert).
+
+### 10.8 HomeScreen *(updated — v2.8)*
+**File:** `src/screens/HomeScreen.js`
+
+**Tappable transaction rows:**
+```js
+<TouchableOpacity
+  key={t.id}
+  activeOpacity={0.72}
+  onPress={() => navigation.navigate('AddTransaction', { transaction: t })}
+>
+  <TransactionItem transaction={t} currency={cur} colors={colors} />
+</TouchableOpacity>
+```
+
+**Username overflow guard:**
+```js
+<View style={{ flex:1, marginRight:12 }}>
+  <Text style={s.username} numberOfLines={1} ellipsizeMode="tail">
+    {settings.name || 'User'}
+  </Text>
+</View>
+```
+
+**Layout (Manual):** `SafeAreaView: paddingTop:-50, paddingBottom:-100`. `ScrollView content: paddingTop:50, paddingBottom:100`.
+
+### 10.9 ActivityScreen *(updated — v2.8)*
+**File:** `src/screens/ActivityScreen.js`
+
+**DeleteTxnModal:** Replaces `Alert.alert` for transaction delete. Same `cm` stylesheet pattern as all other custom modals. Icon 🗑️, danger ring, "Yes, Delete It" destructive + ghost Cancel. `Alert` removed from RN imports.
+
+**Filter pills + calendar mode:** AnimPill, `gap:8`, `paddingVertical:10`, `minHeight:40`.
+
+**⚙️ Deferred — v2.9.0:** DonutChart interactive segment press.
+
+### 10.10 StatsScreen *(updated — v2.8)*
+**File:** `src/screens/StatsScreen.js`
+
+**Filter labels:**
+```js
+const FILTERS = ['Week', 'Month', '3M', '6M', 'Year'];
+// was: ['Week', 'Month', '3 Month', '6 Month', 'Year']
+```
+
+**Layout (Manual):** `SafeAreaView: paddingTop:-50, paddingBottom:-100`. Content padding adjusted accordingly.
 
 ---
 
@@ -305,65 +357,93 @@ Finova · 2026         Fungis-Regular 11px rgba(255,255,255,0.22)
 ### Key Actions
 | Method | Purpose |
 |---|---|
-| `addTransaction(txn)` | Auto-generates id |
-| `editTransaction(txn)` | Matches by id |
-| `deleteTransaction(id)` | |
-| `updateSettings(partial)` | Merges — profile, currency, darkMode, photo |
-| `toggleDarkMode()` | Shorthand |
+| `addTransaction(txn)` | Prepends (newest at index 0) |
+| `editTransaction(txn)` | `map()` replaces by id |
+| `deleteTransaction(id)` | Filter by id |
+| `updateSettings(partial)` | Merges into settings |
+| `toggleDarkMode()` | Shorthand flip |
 | `addCustomCategory(type, name)` | Auto-assigns unique color |
-| `deleteCustomCategory(type, name)` | |
-| `importData(data)` | Full LOAD_DATA replace |
+| `deleteCustomCategory(type, name)` | Filter from customCategories |
+| `importData(data)` | Full `LOAD_DATA` replace |
 
 ### Persistence
-- App data: AsyncStorage `@flo_data`
-- Flag: AsyncStorage `hasOnboarded` (`'true'`)
-- Logout: `AsyncStorage.clear()`
+- App data: `AsyncStorage @flo_data`
+- Flag: `AsyncStorage hasOnboarded` (`'true'`)
+- **Logout only:** `AsyncStorage.clear()` — wipes both keys
+- **Clear All Data:** `AsyncStorage.setItem('@flo_data', ...)` — keeps `hasOnboarded`
 
 ---
 
-## 13. APP.JS ARCHITECTURE *(updated — v2.7)*
+## 13. APP.JS ARCHITECTURE *(updated — v2.8)*
 
 ### Custom Tab Navigation (MainTabs)
-- `display:'none'` for inactive screens — removes from render tree
-- `elevation:100` + `zIndex:100` on tab bar wrapper
-- Spring slide: `damping:24`, `stiffness:220`, `mass:0.85`
-- Directional: tap right → slide from right | tap left → slide from left
-
-### Stack Structure
-```
-[onboarded]     Main(fade) AddTransaction(panDown) Welcome CreateAccount DataInfo Login AppGuide
-[not onboarded] Welcome(fade) CreateAccount DataInfo Login Main AddTransaction AppGuide
-```
+- `display:'none'` inactive screens | `elevation:100` + `zIndex:100` tab bar
+- Spring: `damping:24`, `stiffness:220`, `mass:0.85` | Directional (right → from right, left → from left)
 
 ### Transition Presets
 ```js
 const DARK         = { contentStyle: { backgroundColor: '#111' } };
-const panDownModal = { presentation:'modal', animation:'slide_from_bottom', animationDuration:350, gestureEnabled:true, gestureDirection:'vertical', ...DARK };
+
+// Standard stack push — all onboarding + settings sub-screens
 const slideRight   = { animation:'slide_from_right', animationDuration:300, gestureEnabled:true, gestureDirection:'horizontal', ...DARK };
+
+// Fade — first entry to Main after onboarding/login
 const fadeIn       = { animation:'fade', animationDuration:280, ...DARK };
+
+// Root — Welcome screen, instant
 const noAnim       = { animation:'none', ...DARK };
+
+// Transparent modal — AddTransaction AND AppGuide (v2.8)
+// animation:'none' because both screens handle their own internal Animated.View slide.
+// presentation:'transparentModal' prevents native modal background (white/grey) from appearing.
+const panDownManual = { presentation:'transparentModal', animation:'none', ...DARK };
+
+// Note: panDownModal (presentation:'modal', animation:'slide_from_bottom') is NOT used
+// for AddTransaction or AppGuide in v2.8. The internal animation approach was chosen
+// to eliminate white/grey flash artifacts on Android.
+```
+
+> ⚠️ **CRITICAL v2.8 change:** Both `AddTransactionScreen` and `AppGuideScreen` now use `panDownManual`. They implement their own `Animated.Value` slide-up entry and call `navigation.goBack()` immediately on dismiss (no spring-down exit). All primary navigation still uses `slideRight` with `contentStyle:{backgroundColor:'#111'}` for zero white flash.
+
+### Which preset each screen uses
+| Screen | Preset | Animation source |
+|---|---|---|
+| AddTransaction | `panDownManual` | Internal `Animated.View` (translateY SCREEN_HEIGHT → 0) |
+| AppGuide | `panDownManual` | Internal `Animated.View` (translateY SCREEN_HEIGHT → 0) |
+| Main | `fadeIn` | Native |
+| Welcome | `noAnim` | Native |
+| CreateAccount / DataInfo / Login | `slideRight` | Native |
+
+### Stack Structure
+```
+[onboarded]     Main(fadeIn) AddTransaction(panDownManual) Welcome CreateAccount DataInfo Login AppGuide(panDownManual)
+[not onboarded] Welcome(noAnim) CreateAccount DataInfo Login Main AddTransaction AppGuide
 ```
 
 ---
 
 ## 14. NAVIGATION STRUCTURE
 
-| Screen | File | Transition | Notes |
-|---|---|---|---|
-| Welcome | WelcomeScreen.js | noAnim | Root — no back button |
-| CreateAccount | CreateAccountScreen.js | slideRight | |
-| DataInfo | DataInfoScreen.js | slideRight | |
-| Login | LoginScreen.js | slideRight | |
-| Main | MainTabs (App.js) | fadeIn | Custom animated tabs |
-| AddTransaction | AddTransactionScreen.js | panDownModal | Slides up + down |
-| AppGuide | AppGuideScreen.js | panDownModal | Slides up + down |
+| Screen | Transition | Notes |
+|---|---|---|
+| Welcome | noAnim | Root, no back button |
+| CreateAccount | slideRight | |
+| DataInfo | slideRight | |
+| Login | slideRight | |
+| Main | fadeIn | Custom animated tabs |
+| AddTransaction | panDownManual | Own internal slide animation |
+| AppGuide | panDownManual | Own internal slide animation |
 
 ### Key Flows
 ```
-First launch:   Welcome → CreateAccount → DataInfo → [reset] → Main
-Login:          Welcome → Login → [upload JSON] → [reset] → Main
-Logout:         Settings → LogoutModal → [AsyncStorage.clear()] → [reset] → Welcome
-AddTransaction: Any tab → slides UP → X or Record → slides DOWN
+First launch:      Welcome → CreateAccount → DataInfo → [reset] → Main
+Login:             Welcome → Login → [upload] → [reset] → Main
+Logout:            Settings → LogoutModal → [AsyncStorage.clear()] → [reset] → Welcome
+Clear All Data:    Settings → ClearDataModal → [AsyncStorage.setItem] → stays in Main
+HomeScreen edit:   HomeScreen tap transaction → navigate AddTransaction (edit mode)
+Activity delete:   ActivityScreen TxnDetailModal → DeleteTxnModal → confirmDeleteTxn
+AddTransaction:    Any tab → internal slide UP → X or Record → goBack() immediately
+AppGuide:          Settings → internal slide UP → Back → goBack() immediately
 ```
 
 ---
@@ -371,10 +451,10 @@ AddTransaction: Any tab → slides UP → X or Record → slides DOWN
 ## 15. COMPONENT SPECIFICATIONS
 
 ### AnimPill *(v2.7)*
-Spring press: scale 1 → 0.88 → 1. In ActivityScreen and StatsScreen.
+Spring press 1 → 0.88 → 1. ActivityScreen + StatsScreen.
 
 ### CustomTabBar *(v2.7)*
-Absolute position, `zIndex:100`, `elevation:100`. Center `+` → `AddTransaction`.
+`zIndex:100`, `elevation:100`. Center `+` → `navigate('AddTransaction')`.
 
 ### TermsModal *(v2.8)* — `CreateAccountScreen.js`
 6 sections. "I Understand" → close only. No auto-tick.
@@ -383,13 +463,35 @@ Absolute position, `zIndex:100`, `elevation:100`. Center `+` → `AddTransaction
 Sage primary / wine-red destructive / ghost cancel.
 
 ### ClearDataModal *(v2.8)* — `SettingsScreen.js`
-Danger ring, warning pill, destructive + ghost.
+Danger ring, warning pill. Calls `executeClear` which uses `AsyncStorage.setItem`, NOT `AsyncStorage.clear`.
 
 ### ErrorModal *(v2.8)* — `AddTransactionScreen.js`
-Centered card overlay. Invalid amount / date / missing category name.
+Centered card. Invalid amount / date / missing category name.
 
 ### DeleteCatModal *(v2.8)* — `AddTransactionScreen.js`
 Bottom sheet. Confirm delete custom category.
+
+### DeleteTxnModal *(v2.8)* — `ActivityScreen.js`
+Bottom sheet. Same `cm` stylesheet. Icon 🗑️ danger ring. "Yes, Delete It" + ghost Cancel.
+
+---
+
+## 16. SPACING & STATUS BAR RULES
+
+### Manual Layout Pattern (applied across multiple screens in v2.8)
+A consistent pattern is used across `HomeScreen`, `AddTransactionScreen`, `StatsScreen`, and `SettingsScreen` to fine-tune positioning relative to the Android Status Bar:
+
+```js
+// SafeAreaView — pulls content up toward the status bar
+safe: { flex:1, backgroundColor: colors.bg, paddingTop: -50, paddingBottom: -100 }
+
+// ScrollView / content — compensatory positive padding
+content: { padding: spacing.lg, paddingTop: spacing.xl + 20, paddingBottom: 120 }
+```
+
+This negative SafeAreaView + compensatory content padding approach is intentional and must be preserved as-is. Do not "normalize" it to zero padding — it will break the visual layout on Android.
+
+Each screen may have slightly different `paddingTop` / `paddingBottom` values in `content` to suit its content density.
 
 ---
 
@@ -397,15 +499,25 @@ Bottom sheet. Confirm delete custom category.
 
 | Error | Cause | Fix |
 |---|---|---|
-| Navigator crash: "only Screen/Group/Fragment" | JSX comment inside Stack.Navigator | Remove all JSX comments from navigator blocks |
-| Tab bar invisible on Android | `pointerEvents:'none'` doesn't remove from render tree | `display:'none'` + `elevation:100` on tab bar |
-| `slide_from_bottom` appears instantly | `presentation:'modal'` missing | Always set `presentation:'modal'` on panDownModal |
-| White flash during navigation | Transparent navigator bg | `contentStyle:{backgroundColor:'#111'}` on all screens |
-| Note / New Category hidden behind keyboard | KAV broken inside Android modal screens | Remove KAV, set `softwareKeyboardLayoutMode:'pan'` in `app.json` |
-| `MediaTypeOptions` deprecation warning | Old API, SDK 55 | Omit `mediaTypes` prop entirely |
-| `MediaType.images` crash | `MediaType` not in SDK 55 | Same — omit `mediaTypes` |
-| `CROP_SIZE` already declared | Duplicate const from old + new crop code | Remove old top-level declarations |
-| Custom crop — pan/pinch not working | `Animated.Image` at `origW×origH` — transform origin off-screen | Entire custom crop removed. Use `allowsEditing:true` |
+| Navigator crash | JSX comment inside Stack.Navigator | Remove JSX comments from navigator blocks |
+| Tab bar invisible on Android | `pointerEvents:'none'` still paints | `display:'none'` + `elevation:100` |
+| White flash / grey flash on modal open/close | `presentation:'modal'` native background | Switched to `panDownManual` + internal `Animated.View` for both AddTransaction and AppGuide |
+| Exit animation delay + grey flash | Spring-down then `goBack()` revealed underlying bg | Changed to immediate `navigation.goBack()` — no exit spring |
+| Note / New Category hidden by keyboard | KAV broken inside Android modal screens | `softwareKeyboardLayoutMode:'pan'` in `app.json` |
+| `MediaTypeOptions` deprecation / crash | Deprecated SDK 55 API | Remove `mediaTypes` prop entirely |
+| `MediaType.images` crash | Not in SDK 55 | Same — omit `mediaTypes` |
+| Duplicate `CROP_SIZE` const | Old + new crop code overlap | Remove old declarations |
+| Custom crop broken | `Animated.Image` at `origW×origH` — wrong transform origin | Removed. Use `allowsEditing:true` |
+| `darkColors.bg` wrong hex | `'#222222'` instead of `'#222629'` | Fixed in `theme.js` |
+| Activity delete used system Alert | `Alert.alert` instead of custom modal | `DeleteTxnModal` added |
+| `executeClear` wiped `hasOnboarded` | `AsyncStorage.clear()` in `executeClear` | Replaced with `AsyncStorage.setItem('@flo_data',...)` |
+| `executeClear` wiped custom categories | `customCategories` missing from dispatch | Included in `clearedData` |
+| HomeScreen taps did nothing | No `onPress` on `TransactionItem` | `TouchableOpacity` wrapping each row |
+| AppGuide stale version | `v2.6.0` in footnote | Updated to `v2.8.0` |
+| Stats pills overflow small screens | `'3 Month'`/`'6 Month'` too wide | Changed to `'3M'`/`'6M'` |
+| 24-char username overflows header | No `numberOfLines` constraint | `numberOfLines={1}` + `ellipsizeMode="tail"` |
+| Amount input overflow | No `maxLength` | `maxLength={12}` |
+| AppGuide entry animation extremely slow | `stiffness:24` typo (should be `240`) | Fixed to `stiffness:240` |
 
 ---
 
@@ -413,51 +525,32 @@ Bottom sheet. Confirm delete custom category.
 
 | # | Change | Files |
 |---|---|---|
-| 49 | Integrated FUNGIS custom font family | App.js, theme.js, all screens |
-| 50 | Overhauled Dark Theme to "Designer Modern" | theme.js |
-| 51 | Fixed Dark Mode header visibility | StatsScreen.js |
-| 52 | Fixed Wallet Card in Dark Mode | HomeScreen.js |
-| 53 | Semantic Income (green) / Expense (red) colors | HomeScreen.js, theme.js |
-| 54–55 | Donut Chart palette + primary red #B10F2E | categories.js, theme.js |
-| 56–57 | Dynamic unique category colors (25-color palette) | AppContext.js, categories.js, all screens |
-| 58 | Redesigned CustomTabBar (Instagram-style) | App.js |
-| 59 | Collapsible Date & Time in AddTransaction | AddTransactionScreen.js |
-| 60 | Fixed ReferenceError during data import | AppContext.js |
-| 61 | Updated app logo and adaptive icons | assets/ |
-| 62–63 | Donut chart "Present Month" label + dynamic center | ActivityScreen.js |
-| 64–65 | Thousand-separator amount input | AddTransactionScreen.js |
-| 66–69 | Built 3-page onboarding, first-launch gate, nav reset | WelcomeScreen, CreateAccountScreen, DataInfoScreen, App.js |
-| 70 | Documented correct font key format | — |
-| 71–72 | SVG LinearGradient on Welcome, fixed grey box | WelcomeScreen.js |
-| 73 | Increased background dim on CreateAccount | CreateAccountScreen.js |
-| 74 | Bumped to 2.5.0 | SettingsScreen.js |
-| 75 | Log In button + hint on WelcomeScreen | WelcomeScreen.js |
-| 76 | Built LoginScreen (JSON restore) | LoginScreen.js |
-| 77–79 | Profile picture upload + base64 in AppContext + LOAD_DATA deep-merge | CreateAccountScreen.js, AppContext.js |
-| 80–83 | Inline edit profile card in Settings, removed standalone profile section | SettingsScreen.js |
-| 84–86 | Log Out button, 3-option alert, AsyncStorage.clear + nav reset | SettingsScreen.js |
-| 87–88 | All onboarding screens in both Stack branches, fixed JSX comment crash | App.js |
-| 89 | Bumped to 2.6.0 | SettingsScreen.js |
-| 90 | Removed branded splash overlay | App.js |
-| 91–92 | Custom MainTabs with directional spring slide | App.js |
-| 93 | `contentStyle:{backgroundColor:'#111'}` on all screens — fixes white flash | App.js |
-| 94–98 | AddTransaction modal: X button, drag handle, `presentation:'modal'` restored | AddTransactionScreen.js, App.js |
-| 99–100 | AnimPill spring-press on Activity + Stats selectors, calendar button fix | ActivityScreen.js, StatsScreen.js |
-| 101–102 | Currency moved to Edit Profile, Preferences = Dark Mode only | SettingsScreen.js |
-| 103 | Bumped to 2.7.0 | SettingsScreen.js |
-| 104–106 | TermsModal (4 sections, tappable links, no auto-tick) | CreateAccountScreen.js |
+| 49–103 | v2.6.0 and v2.7.0 changes (see previous KB versions) | — |
+| 104–106 | TermsModal (6 sections, tappable links, no auto-tick), copyright footer | CreateAccountScreen.js |
 | 107–109 | LogoutModal + ClearDataModal replace system Alerts, shared `cm` stylesheet | SettingsScreen.js |
-| 110 | Creator Credit block ("Abhiram Kasturi" Fungis-Heavy #AEB784) | SettingsScreen.js |
-| 111 | Bumped to 2.7.0 (display) | SettingsScreen.js |
-| 112–113 | Added Enforcement & Copyright sections to TermsModal, updated footer | CreateAccountScreen.js |
+| 110 | Creator Credit block (Abhiram Kasturi, Fungis-Heavy, #AEB784) | SettingsScreen.js |
+| 111 | Bumped display version to 2.7.0 | SettingsScreen.js |
+| 112–113 | Enforcement & Copyright sections in TermsModal | CreateAccountScreen.js |
 | 114 | Replaced custom crop UI with native `allowsEditing:true` | CreateAccountScreen.js |
-| 115 | Removed deprecated `mediaTypes` prop entirely | CreateAccountScreen.js |
+| 115 | Removed deprecated `mediaTypes` prop (CreateAccountScreen) | CreateAccountScreen.js |
 | 116 | Simplified Terms row to single line | CreateAccountScreen.js |
-| 117 | Added KeyboardAvoidingView to AddTransactionScreen (later reverted) | AddTransactionScreen.js |
-| 118 | Added `softwareKeyboardLayoutMode:'pan'` to `app.json android` | app.json |
-| 119 | Removed KeyboardAvoidingView — OS pan is correct fix | AddTransactionScreen.js |
-| 120 | Increased ScrollView `paddingBottom` to 120 | AddTransactionScreen.js |
-| 121 | Bumped to 2.8.0 | SettingsScreen.js, app.json |
+| 117–119 | Keyboard fix: `softwareKeyboardLayoutMode:'pan'` in app.json, KAV removed | app.json, AddTransactionScreen.js |
+| 120 | ScrollView `paddingBottom:120` | AddTransactionScreen.js |
+| 121 | QA fix #1: Removed `mediaTypes` from SettingsScreen `pickProfileImage` | SettingsScreen.js |
+| 122 | QA fix #2: `DeleteTxnModal` replaces `Alert.alert` in ActivityScreen | ActivityScreen.js |
+| 123 | QA fix #3 (Phase 1): Switched AddTransaction to `panDownManual` + internal `Animated.View` slide to eliminate white flash | App.js, AddTransactionScreen.js |
+| 124 | QA fix #3 (Phase 2): Removed spring-down exit from AppGuide, changed to immediate `goBack()` to eliminate grey flash and delay | AppGuideScreen.js |
+| 125 | QA fix #3 (Phase 3): Applied same immediate-goBack pattern to AddTransactionScreen exit | AddTransactionScreen.js |
+| 126 | Fixed `stiffness:24` typo → `stiffness:240` in AppGuide entry animation | AppGuideScreen.js |
+| 127 | QA fix #4+5: `executeClear` uses `AsyncStorage.setItem` — preserves `hasOnboarded` and `customCategories` | SettingsScreen.js |
+| 128 | QA fix #6: `darkColors.bg` corrected `'#222222'` → `'#222629'` | theme.js |
+| 129 | QA fix #7: `TransactionItem` rows wrapped in `TouchableOpacity` for edit navigation | HomeScreen.js |
+| 130 | QA fix #8: AppGuide footnote updated to `v2.8.0` | AppGuideScreen.js |
+| 131 | QA fix #9: Stats filter labels `'3M'`/`'6M'` | StatsScreen.js |
+| 132 | QA fix #10a: Username `numberOfLines={1}` + `ellipsizeMode="tail"` | HomeScreen.js |
+| 133 | QA fix #10b: Amount input `maxLength={12}` | AddTransactionScreen.js |
+| 134 | Manual layout: `paddingTop:-50`, `paddingBottom:-100` on SafeAreaView across multiple screens | HomeScreen.js, AddTransactionScreen.js, StatsScreen.js, SettingsScreen.js |
+| 135 | Bumped version to 2.8.0 | app.json, SettingsScreen.js |
 
 ---
 
@@ -474,70 +567,71 @@ Always `--clear` after any `app.json` change.
 await AsyncStorage.removeItem('hasOnboarded');
 ```
 
-### 🛑 Note / New Category Input Hidden Behind Keyboard
-`KeyboardAvoidingView` does not work inside Android `presentation:'modal'` screens.
-**Fix:** `"softwareKeyboardLayoutMode": "pan"` in `app.json → android`. Do NOT add KAV back.
+### 🛑 White Flash / Grey Flash on Modal Open/Close
+Both AddTransactionScreen and AppGuideScreen use `panDownManual` (`presentation:'transparentModal'`, `animation:'none'`) with internal `Animated.View` slides. Do NOT switch them to `panDownModal` — the native modal background causes a white/grey flash on Android. The internal animation approach is the correct fix.
 
-### 🛑 Image Picker Crash / Warning
+### 🛑 AddTransaction / AppGuide Exit Feels Slow
+Do NOT add a spring-down exit animation before `goBack()`. The exit is intentionally instant (`navigation.goBack()` called immediately). A spring-down animation causes a grey flash as the underlying screen renders before the animation completes.
+
+### 🛑 Note / New Category Hidden Behind Keyboard
+`KeyboardAvoidingView` is broken inside Android modal screens. Fix: `softwareKeyboardLayoutMode:'pan'` in `app.json android`. Do NOT add KAV.
+
+### 🛑 Image Picker
 Never use `ImagePicker.MediaTypeOptions` or `ImagePicker.MediaType` on SDK 55. Omit `mediaTypes` entirely.
 
-### 🛑 Custom Crop UI
-Do not re-add. `Animated.Image` at `origW × origH` places the transform origin off-screen. Use `allowsEditing: true`.
+### 🛑 `executeClear` Must NOT Call `AsyncStorage.clear()`
+Only `performLogout` calls `AsyncStorage.clear()`. `executeClear` uses `AsyncStorage.setItem('@flo_data', ...)` to preserve `hasOnboarded` and `customCategories`.
 
 ### 🛑 Tab Bar Not Visible
 `elevation:100` + `zIndex:100` on wrapper. `display:'none'` for inactive screens.
 
-### 🛑 slide_from_bottom Not Animating
-`presentation:'modal'` is required. Without it, screen appears instantly on Android.
+### 🛑 White Flash on Standard Navigation
+`contentStyle:{backgroundColor:'#111'}` on all stack screen options via the `DARK` const.
 
-### 🛑 White Flash on Navigation
-`contentStyle: { backgroundColor: '#111' }` on all screen options.
+### 🛑 Font Fallback
+Keys must be exactly `'Fungis-Heavy'`, `'Fungis-Bold'`, `'Fungis-Regular'`.
 
-### 🛑 Font Rendering as System Font
-Keys must be `'Fungis-Heavy'`, `'Fungis-Bold'`, `'Fungis-Regular'`. Exact spelling, no exceptions.
+### 🛑 Negative SafeAreaView Padding
+The `paddingTop:-50`, `paddingBottom:-100` pattern on SafeAreaView across multiple screens is intentional. Do not remove it — it controls Android status bar positioning. Each screen's `ScrollView content` has compensatory positive `paddingTop` and `paddingBottom`.
 
-### 🛑 Navigator Crash
-No JSX comments `{/* */}` inside `Stack.Navigator` blocks.
+### 🛑 AppGuide Entry Too Slow
+`stiffness` must be `240` (not `24`). The `24` typo caused an extremely slow spring entry. Check `AppGuideScreen.js` spring config.
 
 ---
 
 ## 23. SECURITY & ROBUSTNESS NOTES
 
 ### Storage
-- All data is local only (AsyncStorage). Not encrypted by default on Android — disclosed in TermsModal.
+- All data local only (AsyncStorage, not encrypted on Android). Disclosed in TermsModal.
 - No network calls, no API keys, no analytics, no telemetry.
-- JSON backup is plaintext — disclosed in Privacy Policy. Users warned not to share.
+- JSON backup is plaintext. Disclosed in Privacy Policy.
 
 ### Input Validation
-- **Amount:** `parseFloat(replace(/,/g,''))` — NaN and ≤0 rejected with ErrorModal before any state change.
-- **Date:** All fields range-validated (day 1–31, month 0–11, year 2000–2100, hour 0–23, minute 0–59).
-- **Username:** `maxLength={24}` at TextInput level.
-- **Custom category name:** `maxLength={30}` at TextInput level.
-- **Age:** `replace(/[^0-9]/g,'')` strips non-numeric characters.
-- **New category:** `trim()` before save — empty names silently rejected.
-- **Custom "Others" category:** empty `customCategory` on submit triggers ErrorModal.
-
-### Import / Restore Safety
-- Imported JSON validated: must have `transactions` array. Invalid → Alert, no state mutation.
-- `LOAD_DATA` reducer deep-merges settings — old backups missing `profileImage` default to `''`, no crash.
+- **Amount:** `parseFloat(replace(/,/g,''))` — NaN and ≤0 → ErrorModal before state change. `maxLength={12}` at TextInput.
+- **Date:** All fields range-validated (day 1–31, month 0–11, year 2000–2100, hour 0–23, min 0–59).
+- **Username:** `maxLength={24}` + `numberOfLines={1}` display guard.
+- **Custom category:** `maxLength={30}`. Empty names silently rejected via `trim()`.
+- **Age:** `replace(/[^0-9]/g,'')` strips non-numeric.
+- **Import:** Must have `transactions` array. Invalid → Alert, no state mutation.
+- **`LOAD_DATA` reducer:** Deep-merges settings — old backups missing `profileImage` default to `''`.
 
 ### Navigation Safety
-- Logout uses `navigation.reset` — no authenticated back stack remains.
-- Onboarding exit uses `navigation.reset` — cannot back-navigate into onboarding.
-- `hasOnboarded` removal only returns user to onboarding — no data is exposed.
+- Logout: `navigation.reset` — no authenticated back stack.
+- Onboarding exit: `navigation.reset` — cannot back into onboarding.
+- "Clear All Data" preserves `hasOnboarded` — user stays in Main.
 
-### Hardening Recommendations (future)
-- Replace AsyncStorage with `expo-secure-store` for name/age.
-- Add optional `expo-local-authentication` (biometric lock).
-- Add version + checksum to JSON backup format to detect tampering.
-- Add server-side style trim + length validation in `handleSubmit` (currently only at TextInput level).
+### Hardening (future — v2.9.0)
+- `expo-secure-store` for name/age.
+- `expo-local-authentication` biometric lock.
+- Backup checksum to detect tampered JSON.
+- Submit-level trim/length validation in `handleSubmit`.
 
 ---
 
 ## 24. CRITICAL RULES FOR ANY AGENT
 
 1. **Font keys: `Fungis-*`** — never `FUNGIS-*`. Silent fallback.
-2. **Asset path from screens:** `../../assets/`.
+2. **Asset path:** `../../assets/` from any screen.
 3. **Currency stored as symbol** (`₹ $ € £ ¥`). Lives in Edit Profile.
 4. **Hook is `useApp()`** — not `useContext(AppContext)`.
 5. **Onboarding flag:** `'hasOnboarded'` → `'true'`. App data → `'@flo_data'`. Logout → `AsyncStorage.clear()`.
@@ -548,25 +642,44 @@ No JSX comments `{/* */}` inside `Stack.Navigator` blocks.
 10. **All onboarding screens in both Stack branches** — logout reset must find `Welcome`.
 11. **No JSX comments inside navigator blocks** — crashes the app.
 12. **`profileImage` is base64 data URI** — check non-empty before rendering.
-13. **JSON backup contains everything** — transactions, settings (incl. profileImage), customCategories.
-14. **`presentation:'modal'` required for `slide_from_bottom`** — without it, screen appears instantly.
-15. **Tab bar: `elevation:100` on Android** — `zIndex` alone is insufficient.
-16. **Inactive tab screens: `display:'none'`** — not `pointerEvents:'none'`.
-17. **Tab.Navigator NOT used** — MainTabs is custom in App.js.
-18. **`contentStyle:{backgroundColor:'#111'}` on all stack screens** — prevents white flash.
-19. **Never use system `Alert.alert()` for destructive actions** — use custom modals.
-20. **Modal sheet surface: `#2C3020`** — not `#222629`.
-21. **TermsModal "I Understand" does NOT auto-tick checkbox** — intentional.
-22. **Clear All Data keeps `settings`** — only `transactions` wiped. Logout wipes everything.
-23. **Creator credit always visible** — "Abhiram Kasturi" Fungis-Heavy 18px `#AEB784`. Do not remove.
-24. **Never add `KeyboardAvoidingView` to AddTransactionScreen** — broken on Android modals. Fix is `app.json`.
-25. **Never use `ImagePicker.MediaTypeOptions` or `ImagePicker.MediaType`** — both broken on SDK 55. Omit `mediaTypes`.
-26. **Never re-add the custom crop modal** — broken by design. Use `allowsEditing:true`.
-27. **Version is 2.8.0** — shown in SettingsScreen (rowMuted text) and `app.json`.
+13. **JSON backup contains everything** — transactions, settings, customCategories.
+14. **AddTransaction and AppGuide both use `panDownManual`** (`presentation:'transparentModal'`, `animation:'none'`). They implement their own internal `Animated.View` slide-up. Do NOT switch them to `panDownModal` — this causes a white/grey flash on Android.
+15. **No spring-down exit on AddTransaction or AppGuide** — call `navigation.goBack()` immediately. A spring-before-goBack reveals the underlying screen background and flashes grey.
+16. **Tab bar: `elevation:100` on Android** — `zIndex` alone insufficient.
+17. **Inactive tab screens: `display:'none'`** — not `pointerEvents:'none'`.
+18. **Tab.Navigator NOT used** — MainTabs is custom in App.js.
+19. **`contentStyle:{backgroundColor:'#111'}` on all stack screens** — prevents white flash on standard navigation.
+20. **Never use system `Alert.alert()` for destructive actions** — use `DeleteTxnModal`, `DeleteCatModal`, `ClearDataModal`, `LogoutModal`.
+21. **Modal sheet surface: `#2C3020`** — not `#222629`.
+22. **TermsModal "I Understand" does NOT auto-tick checkbox** — intentional legal consent UX.
+23. **`executeClear` uses `AsyncStorage.setItem('@flo_data',...)` NOT `AsyncStorage.clear()`** — `AsyncStorage.clear()` is ONLY for `performLogout`.
+24. **`executeClear` includes `customCategories` in clearedData** — custom categories survive "Clear All Data".
+25. **Creator credit always visible** — "Abhiram Kasturi" Fungis-Heavy 18px `#AEB784`. Do not remove.
+26. **Never add `KeyboardAvoidingView` to AddTransactionScreen** — broken on Android modals. Fix is `app.json`.
+27. **Never use `ImagePicker.MediaTypeOptions` or `ImagePicker.MediaType`** — broken on SDK 55. Omit `mediaTypes`.
+28. **Never re-add the custom crop modal** — broken by design. Use `allowsEditing:true`.
+29. **`darkColors.bg` is `'#222629'`** — not `'#222222'`.
+30. **HomeScreen transaction rows are tappable** — `TouchableOpacity` wrapping each row navigates to edit mode. Do not remove.
+31. **Stats filter array: `['Week','Month','3M','6M','Year']`** — not `'3 Month'`/`'6 Month'`.
+32. **Version is `2.8.0`** — displayed in SettingsScreen (`rowMuted` text) and `app.json`. AppGuide footnote: `v2.8.0`.
+33. **Negative SafeAreaView padding is intentional** — `paddingTop:-50`, `paddingBottom:-100` across HomeScreen, AddTransactionScreen, StatsScreen, SettingsScreen. Do not normalize to zero.
+34. **AppGuide spring stiffness is `240`** — not `24`. The `24` typo caused an extremely slow entry animation.
+
+---
+
+## 25. FUTURE WORK — v2.9.0
+
+| Feature | Notes |
+|---|---|
+| DonutChart interactive segments | Add `onSegmentPress` to SVG arc paths, wire to ActivityScreen for legend highlight |
+| `expo-secure-store` for settings | Replace AsyncStorage for name/age |
+| Biometric lock | Optional `expo-local-authentication` |
+| Backup checksum | Version + hash in JSON backup to detect tampering |
+| Submit-level validation | Trim + length checks in `handleSubmit` (currently only TextInput-level) |
 
 ---
 
 *Last updated: March 19, 2026*
 *Project: Finova Personal Finance App*
-*Version: 2.8.0 — Terms Modal, Custom Dialogs, Creator Credit & Keyboard Fix*
+*Version: 2.8.0 — QA Fixes, Transition Refinement & Layout Polish*
 *Developer: Abhiram Kasturi*

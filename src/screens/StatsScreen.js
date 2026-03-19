@@ -10,7 +10,7 @@ import { lightColors, darkColors, spacing, radius, fonts } from '../theme/theme'
 import { getCat } from '../data/categories';
 
 const { width: SCREEN_W } = Dimensions.get('window');
-const FILTERS = ['Week', 'Month', '3 Month', '6 Month', 'Year'];
+const FILTERS = ['Week', 'Month', '3M', '6M', 'Year'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // ─── Animated pill — spring scale on press ────────────────────────────────────

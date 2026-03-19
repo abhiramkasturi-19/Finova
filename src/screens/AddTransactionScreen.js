@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TextInput, TouchableOpacity,
-  StyleSheet, Modal, Platform,
+  StyleSheet, Modal, Platform, Animated, Dimensions, BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useApp } from '../context/AppContext';
 import { lightColors, darkColors, spacing, radius, fonts } from '../theme/theme';
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../data/categories';
+
+const SCREEN_H = Dimensions.get('window').height;
 
 const pad = (n) => String(n).padStart(2, '0');
 
@@ -116,6 +118,35 @@ export default function AddTransactionScreen({ navigation, route }) {
   const savedCustomCats = (customCategories?.[type] || []);
   const s = makeStyles(colors);
 
+  // ── Slide animation (slide up on open, slide down on close) ─────────────────
+  const slideAnim = useRef(new Animated.Value(SCREEN_H)).current;
+
+  useEffect(() => {
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      damping: 28,
+      stiffness: 260,
+      mass: 0.9,
+    }).start();
+  }, []);
+
+  // Close — instant dismiss (no exit animation).
+  // The spring exit was causing a 200-300ms grey flash as the transparentModal
+  // background revealed itself while the slide played. Instant close is cleaner.
+  const handleClose = (onDone) => {
+    if (onDone) onDone();
+    navigation.goBack();
+  };
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      handleClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, []);
+
   const handleAddNewCat = () => {
     const name = newCatInput.trim();
     if (!name) return;
@@ -174,25 +205,31 @@ export default function AddTransactionScreen({ navigation, route }) {
     const finalCustom = isCustom ? customCategory : (category === 'others' ? customCategory.trim() : '');
     const txnData     = { type, amount: n, category: finalCatId, customCategory: finalCustom, date: builtDate, note };
 
-    if (editMode) {
-      editTransaction({ ...editMode, ...txnData });
-    } else {
-      addTransaction(txnData);
-    }
-    navigation.goBack();
+    // Animate close first, then save — keeps the transition smooth
+    handleClose(() => {
+      if (editMode) {
+        editTransaction({ ...editMode, ...txnData });
+      } else {
+        addTransaction(txnData);
+      }
+      navigation.goBack();
+    });
   };
 
   return (
-    <SafeAreaView style={s.safe}>
-      <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+    // Animated.View wraps the entire screen so the spring translateY controls
+    // the slide-up (open) and slide-down (close) without any native modal flash.
+    <Animated.View style={[sa.root, { transform: [{ translateY: slideAnim }] }]}>
+      <SafeAreaView style={s.safe}>
+        <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
 
-        {/* Header */}
-        <View style={s.header}>
-          <Text style={s.title}>{editMode ? 'Edit Transaction' : 'Add Transaction'}</Text>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={s.closeBtn}>
-            <Text style={s.closeText}>✕</Text>
-          </TouchableOpacity>
-        </View>
+          {/* Header */}
+          <View style={s.header}>
+            <Text style={s.title}>{editMode ? 'Edit Transaction' : 'Add Transaction'}</Text>
+            <TouchableOpacity onPress={() => handleClose()} style={s.closeBtn}>
+              <Text style={s.closeText}>✕</Text>
+            </TouchableOpacity>
+          </View>
 
         {/* Type Toggle */}
         <View style={s.toggleWrap}>
@@ -222,6 +259,7 @@ export default function AddTransactionScreen({ navigation, route }) {
               placeholder="0.00"
               placeholderTextColor={colors.border}
               keyboardType="decimal-pad"
+              maxLength={12}
             />
           </View>
         </View>
@@ -382,8 +420,20 @@ export default function AddTransactionScreen({ navigation, route }) {
         onConfirm={confirmDelete}
       />
     </SafeAreaView>
+  </Animated.View>
   );
 }
+
+// ─── Slide-animation root wrapper ─────────────────────────────────────────────
+// `transparentModal` keeps the underlying screen fully visible behind us.
+// This Animated.View slides up on mount and slides down on dismiss/save,
+// completely eliminating the native white-flash artifact.
+const sa = StyleSheet.create({
+  root: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+  },
+});
 
 // ─── Screen Styles ────────────────────────────────────────────────────────────
 

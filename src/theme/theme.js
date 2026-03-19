@@ -32,7 +32,7 @@ export const lightColors = {
 
 // ── DARK THEME — Designer Modern (#222629 based) ─────────────────────────────
 export const darkColors = {
-  bg:          '#222222',   // deepest charcoal
+  bg:          '#222629',   // dark olive-grey (Designer Modern)
   surface:     '#474B47',   // dark grey
   surface2:    '#6B6E70',   // grey
   accent:      '#AEB784',   // sage pop highlight
